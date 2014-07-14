@@ -62,6 +62,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="GameBoyCore\CPU.cs" />
+    <Compile Include="GameBoyCore\Register.cs" />
     <Compile Include="GameBoySystem\GameBoyEmulator.cs" />
     <Compile Include="GameBoySystem\IEmulator.cs" />
     <Compile Include="GameBoySystem\StateUtil.cs" />
