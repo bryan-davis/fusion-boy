@@ -1,12 +1,13 @@
 ﻿using System;
+using System.IO;
 
 namespace SharpBoy.GameBoyCore
 {
     [Serializable]
     public class CPU
     {
-        private const int memorySize = 0x10000; // 65536 - 64KiB
-
+        private CartType cartType;
+        
         public Register RegisterAF { get; private set; }
         public Register RegisterBC { get; private set; }
         public Register RegisterDE { get; private set; }
@@ -20,7 +21,7 @@ namespace SharpBoy.GameBoyCore
         public const int FlagH = 1 << 5;    // Half Carry Flag            
         public const int FlagC = 1 << 4;    // Carry Flag
 
-        public byte[] Memory { get; private set; }
+        public Memory Memory { get; private set; }
 
         public CPU()
         {
@@ -30,9 +31,23 @@ namespace SharpBoy.GameBoyCore
             RegisterHL = new Register();
             StackPointer = 0;
             ProgramCounter = 0;
-            Memory = new byte[memorySize];
+            Memory = new Memory();
         }
 
+        public void LoadRom(string romPath)
+        {
+            Reset();
+            using (Stream fileStream = File.OpenRead(romPath))
+            {
+                // The first 16K is always read into the beginning of memory
+                fileStream.Read(Memory.Data, 0x00, 0x4000);
+                cartType = ReadCartType();
+                int romSize = ReadRomSize();
+                int delete = 0;
+            }
+        }
+
+        // Power-up sequence, reset registers and memory
         // http://problemkaputt.de/pandocs.htm#powerupsequence
         public void Reset()
         {
@@ -44,37 +59,76 @@ namespace SharpBoy.GameBoyCore
             StackPointer = 0xFFFE;
             ProgramCounter = 0x100;
 
-            Memory[0xFF05] = 0x00;
-            Memory[0xFF06] = 0x00;
-            Memory[0xFF07] = 0x00;
-            Memory[0xFF10] = 0x80;
-            Memory[0xFF11] = 0xBF;
-            Memory[0xFF12] = 0xF3;
-            Memory[0xFF14] = 0xBF;
-            Memory[0xFF16] = 0x3F;
-            Memory[0xFF17] = 0x00;
-            Memory[0xFF19] = 0xBF;
-            Memory[0xFF1A] = 0x7F;
-            Memory[0xFF1B] = 0xFF;
-            Memory[0xFF1C] = 0x9F;
-            Memory[0xFF1E] = 0xBF;
-            Memory[0xFF20] = 0xFF;
-            Memory[0xFF21] = 0x00;
-            Memory[0xFF22] = 0x00;
-            Memory[0xFF23] = 0xBF;
-            Memory[0xFF24] = 0x77;
-            Memory[0xFF25] = 0xF3;
-            Memory[0xFF26] = 0xF1;
-            Memory[0xFF40] = 0x91;
-            Memory[0xFF42] = 0x00;
-            Memory[0xFF43] = 0x00;
-            Memory[0xFF45] = 0x00;
-            Memory[0xFF47] = 0xFC;
-            Memory[0xFF48] = 0xFF;
-            Memory[0xFF49] = 0xFF;
-            Memory[0xFF4A] = 0x00;
-            Memory[0xFF4B] = 0x00;
-            Memory[0xFFFF] = 0x00;
+            Memory.Reset();
+        }
+
+        private CartType ReadCartType()
+        {
+            CartType type;
+            // Cart type is locate as 0x147
+            // http://problemkaputt.de/pandocs.htm#thecartridgeheader
+            byte value = Memory[0x147];
+            switch (value)
+            {
+                case 0x00: 
+                    type = CartType.RomOnly; break;
+                case 0x01:
+                case 0x02:
+                case 0x03: 
+                    type = CartType.MBC1; break;
+                case 0x05:
+                case 0x06:
+                    type = CartType.MBC2; break;
+                case 0x08:
+                case 0x09:
+                    type = CartType.RomOnly; break;
+                case 0x0F:
+                case 0x10:
+                case 0x11:
+                case 0x12:
+                case 0x13:
+                    type = CartType.MBC3; break;
+                case 0xFF:
+                    type = CartType.HuC1; break;
+                default:
+                    type = CartType.Unknown; break;
+            }
+
+            return type;
+        }
+
+        private int ReadRomSize()
+        {
+            int romSize = 0;
+            const int BankSize = 16384;   // 16K
+
+            switch (Memory[0x148])
+            {
+                case 0x00: 
+                    romSize = 2 * BankSize; break;   // 32K
+                case 0x01: 
+                    romSize = 4 * BankSize; break;   // 64K
+                case 0x02: 
+                    romSize = 8 * BankSize; break;   // 128K
+                case 0x03: 
+                    romSize = 16 * BankSize; break;  // 256K
+                case 0x04: 
+                    romSize = 32 * BankSize; break;  // 512K
+                case 0x05: 
+                    romSize = 64 * BankSize; break;  // 1M
+                case 0x06: 
+                    romSize = 128 * BankSize; break; // 2M
+                case 0x52: 
+                    romSize = 72 * BankSize; break;  // 1.1M
+                case 0x53: 
+                    romSize = 80 * BankSize; break;  // 1.2M
+                case 0x54: 
+                    romSize = 96 * BankSize; break;  // 1.5M
+                default:
+                    break;
+            }
+
+            return romSize;
         }
     }
 }

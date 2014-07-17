@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpBoy.GameBoyCore;
+using System;
 using System.Diagnostics;
 using System.IO;
 
@@ -12,11 +13,13 @@ namespace SharpBoy.GameBoySystem
         private double microsecondsPerFrame;
         private string saveStateDirectory;
         private string currentGame;
+        private CPU cpu;
 
         public GameBoyEmulator()
         {
             saveStateDirectory = Path.Combine(Directory.GetCurrentDirectory(), "save");
             CalculateSpeedLimit();
+            cpu = new CPU();
         }
 
         public string CurrentGame
@@ -63,6 +66,7 @@ namespace SharpBoy.GameBoySystem
         public void LoadRom(string filename)
         {
             CurrentGame = Path.GetFileNameWithoutExtension(filename);
+            cpu.LoadRom(filename);
         }
 
         public void KeyUp(System.Windows.Input.Key key)
