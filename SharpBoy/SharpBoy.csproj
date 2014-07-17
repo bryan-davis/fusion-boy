@@ -61,7 +61,9 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="GameBoyCore\CartType.cs" />
     <Compile Include="GameBoyCore\CPU.cs" />
+    <Compile Include="GameBoyCore\Memory.cs" />
     <Compile Include="GameBoyCore\Register.cs" />
     <Compile Include="GameBoySystem\GameBoyEmulator.cs" />
     <Compile Include="GameBoySystem\IEmulator.cs" />
