@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Input;
 
-namespace SharpBoy.GameBoySystem
+namespace SharpBoy.Emulator
 {
     public delegate void RenderEventHandler(byte[] data);
 

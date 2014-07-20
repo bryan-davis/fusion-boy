@@ -61,14 +61,15 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="GameBoyCore\CartType.cs" />
-    <Compile Include="GameBoyCore\CPU.cs" />
-    <Compile Include="GameBoyCore\Memory.cs" />
-    <Compile Include="GameBoyCore\Register.cs" />
-    <Compile Include="GameBoySystem\GameBoyEmulator.cs" />
-    <Compile Include="GameBoySystem\IEmulator.cs" />
-    <Compile Include="GameBoySystem\StateUtil.cs" />
-    <Compile Include="GameBoySystem\ViewModelBase.cs" />
+    <Compile Include="Cartridge\CartridgeInfo.cs" />
+    <Compile Include="Cartridge\CartType.cs" />
+    <Compile Include="Core\CPU.cs" />
+    <Compile Include="Core\Memory.cs" />
+    <Compile Include="Core\Register.cs" />
+    <Compile Include="Emulator\GameBoyEmulator.cs" />
+    <Compile Include="Emulator\IEmulator.cs" />
+    <Compile Include="Emulator\StateUtil.cs" />
+    <Compile Include="Emulator\ViewModelBase.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace SharpBoy.GameBoySystem
+namespace SharpBoy.Emulator
 {
     public abstract class ViewModelBase : INotifyPropertyChanged
     {
