@@ -1,9 +1,9 @@
-﻿using SharpBoy.GameBoyCore;
+﻿using SharpBoy.Core;
 using System;
 using System.Diagnostics;
 using System.IO;
 
-namespace SharpBoy.GameBoySystem
+namespace SharpBoy.Emulator
 {
     public class GameBoyEmulator : ViewModelBase, IEmulator
     {

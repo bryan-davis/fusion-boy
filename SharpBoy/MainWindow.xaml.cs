@@ -1,5 +1,5 @@
 ﻿using Microsoft.Win32;
-using SharpBoy.GameBoySystem;
+using SharpBoy.Emulator;
 using System;
 using System.Threading;
 using System.Windows;

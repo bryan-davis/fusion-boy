@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SharpBoy.GameBoyCore
+namespace SharpBoy.Core
 {
     public class Memory
     {

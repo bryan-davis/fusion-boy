@@ -1,9 +1,9 @@
-﻿using SharpBoy.GameBoyCore;
+﻿using SharpBoy.Core;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace SharpBoy.GameBoySystem
+namespace SharpBoy.Emulator
 {
     static class StateUtil
     {
