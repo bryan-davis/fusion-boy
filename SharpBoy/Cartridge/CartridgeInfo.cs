@@ -10,7 +10,7 @@ namespace SharpBoy.Cartridge
         private Memory memory;
 
         public string Title { get; private set; }
-        public string MfrCode { get; private set; }
+        public string ManufacturerCode { get; private set; }
         public byte CGBFlag { get; private set; }
         public string NewLicenseeCode { get; private set; }
         public byte SGBFlag { get; private set; }
@@ -32,7 +32,7 @@ namespace SharpBoy.Cartridge
         private void Initialize()
         {
             Title = ReadTitle();
-            MfrCode = ReadManufacturerCode();
+            ManufacturerCode = ReadManufacturerCode();
             CGBFlag = memory[0x143];
             NewLicenseeCode = ReadNewLicenseeCode();
             SGBFlag = memory[0x146];

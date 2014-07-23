@@ -53,8 +53,8 @@ namespace SharpBoy.Core
         {
             RegisterAF.Value = 0x01B0;
             RegisterBC.Value = 0x0013;
-            RegisterBC.Value = 0x00D8;
-            RegisterBC.Value = 0x014D;
+            RegisterDE.Value = 0x00D8;
+            RegisterHL.Value = 0x014D;
             
             StackPointer = 0xFFFE;
             ProgramCounter = 0x100;
