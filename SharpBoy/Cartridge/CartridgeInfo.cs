@@ -7,7 +7,7 @@ namespace SharpBoy.Cartridge
     // Based on http://problemkaputt.de/pandocs.htm#thecartridgeheader
     public class CartridgeInfo
     {
-        private Memory memory;
+        private readonly byte[] header;
 
         public string Title { get; private set; }
         public string ManufacturerCode { get; private set; }
@@ -16,16 +16,19 @@ namespace SharpBoy.Cartridge
         public byte SGBFlag { get; private set; }
         public CartType CartType { get; private set; }
         public int ROMSize { get; private set; }
+        public int ROMBankCount { get; private set; }
         public int RAMSize { get; private set; }
+        public int RAMBankCount { get; private set; }
+        public bool HasBattery { get; private set; }
         public byte DestinationCode { get; private set; }
         public byte OldLicenseeCode { get; private set; }
         public byte MaskROMVersion { get; private set; }
         public byte HeaderChecksum { get; private set; }
         public ushort GlobalChecksum { get; private set; }
 
-        public CartridgeInfo(Memory memory)
+        public CartridgeInfo(byte[] header)
         {
-            this.memory = memory;
+            this.header = header;
             Initialize();
         }
 
@@ -33,41 +36,42 @@ namespace SharpBoy.Cartridge
         {
             Title = ReadTitle();
             ManufacturerCode = ReadManufacturerCode();
-            CGBFlag = memory[0x143];
+            CGBFlag = header[0x143];
             NewLicenseeCode = ReadNewLicenseeCode();
-            SGBFlag = memory[0x146];
+            SGBFlag = header[0x146];
             CartType = ReadCartType();
             ROMSize = ReadRomSize();
             RAMSize = ReadRamSize();
-            DestinationCode = memory[0x14A];
-            OldLicenseeCode = memory[0x14B];
-            MaskROMVersion = memory[0x14C];
-            HeaderChecksum = memory[0x14D];
-            GlobalChecksum = (ushort)((memory[0x14E] << 8) | memory[0x14F]);
+            HasBattery = UsesBattery();
+            DestinationCode = header[0x14A];
+            OldLicenseeCode = header[0x14B];
+            MaskROMVersion = header[0x14C];
+            HeaderChecksum = header[0x14D];
+            GlobalChecksum = (ushort)((header[0x14E] << 8) | header[0x14F]);
         }
 
         private string ReadTitle()
         {
-            var title = memory.Data.Skip(0x134).Take(16).ToArray();
+            var title = header.Skip(0x134).Take(16).ToArray();
             return Encoding.UTF8.GetString(title);
         }
 
         private string ReadManufacturerCode()
         {
-            var manufacturer = memory.Data.Skip(0x13F).Take(2).ToArray();
+            var manufacturer = header.Skip(0x13F).Take(2).ToArray();
             return Encoding.UTF8.GetString(manufacturer);
         }
 
         private string ReadNewLicenseeCode()
         {
-            var licenseCode = memory.Data.Skip(0x144).Take(2).ToArray();
+            var licenseCode = header.Skip(0x144).Take(2).ToArray();
             return Encoding.UTF8.GetString(licenseCode);
         }
 
         private CartType ReadCartType()
         {
             CartType type;
-            byte value = memory[0x147];
+            byte value = header[0x147];
             switch (value)
             {
                 case 0x00:
@@ -114,39 +118,60 @@ namespace SharpBoy.Cartridge
             return type;
         }
 
+        private bool UsesBattery()
+        {
+            bool usesBattery;
+            byte value = header[0x147];
+            switch (value)
+            {
+                case 0x03:                    
+                case 0x06:
+                case 0x09:
+                case 0x13:
+                case 0x17:
+                case 0x1B:
+                case 0x1E:
+                case 0xFF:
+                    usesBattery = true; break;
+                default:
+                    usesBattery = false; break;
+            }
+
+            return usesBattery;
+        }
+
         private int ReadRomSize()
         {
-            int romSize = 0;
             const int BankSize = 16384;   // 16K
 
-            byte value = memory[0x148];
+            byte value = header[0x148];
             switch (value)
             {
                 case 0x00:
-                    romSize = 2 * BankSize; break;   // 32K
+                    ROMBankCount = 2; break;   // 32K
                 case 0x01:
-                    romSize = 4 * BankSize; break;   // 64K
+                    ROMBankCount = 4; break;   // 64K
                 case 0x02:
-                    romSize = 8 * BankSize; break;   // 128K
+                    ROMBankCount = 8; break;   // 128K
                 case 0x03:
-                    romSize = 16 * BankSize; break;  // 256K
+                    ROMBankCount = 16; break;  // 256K
                 case 0x04:
-                    romSize = 32 * BankSize; break;  // 512K
+                    ROMBankCount = 32; break;  // 512K
                 case 0x05:
-                    romSize = 64 * BankSize; break;  // 1M
+                    ROMBankCount = 64; break;  // 1M
                 case 0x06:
-                    romSize = 128 * BankSize; break; // 2M
+                    ROMBankCount = 128; break; // 2M
                 case 0x52:
-                    romSize = 72 * BankSize; break;  // 1.1M
+                    ROMBankCount = 72 ; break;  // 1.1M
                 case 0x53:
-                    romSize = 80 * BankSize; break;  // 1.2M
+                    ROMBankCount = 80 ; break;  // 1.2M
                 case 0x54:
-                    romSize = 96 * BankSize; break;  // 1.5M
+                    ROMBankCount = 96 ; break;  // 1.5M
                 default:
-                    romSize = 0; break;
+                    ROMBankCount = 0; break;
             }
 
-            return romSize;
+            return BankSize * ROMBankCount;
         }
 
         private int ReadRamSize()
@@ -154,7 +179,7 @@ namespace SharpBoy.Cartridge
             int ramSize = 0;
             const int ByteSize = 1024;   // 1K
 
-            byte value = memory[0x149];
+            byte value = header[0x149];
             switch (value)
             {
                 case 0x00:

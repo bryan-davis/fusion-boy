@@ -7,8 +7,6 @@ namespace SharpBoy.Core
     [Serializable]
     public class CPU
     {
-        private CartType cartType;
-        
         public Register RegisterAF { get; private set; }
         public Register RegisterBC { get; private set; }
         public Register RegisterDE { get; private set; }
@@ -22,7 +20,7 @@ namespace SharpBoy.Core
         public const int FlagH = 1 << 5;    // Half Carry Flag            
         public const int FlagC = 1 << 4;    // Carry Flag
 
-        public Memory Memory { get; private set; }
+        public MemoryBankController Memory { get; private set; }
         public CartridgeInfo CartInfo { get; private set; }
 
         public CPU()
@@ -32,19 +30,20 @@ namespace SharpBoy.Core
             RegisterDE = new Register();
             RegisterHL = new Register();
             StackPointer = 0;
-            ProgramCounter = 0;
-            Memory = new Memory();
+            ProgramCounter = 0;            
         }
 
         public void LoadRom(string romPath)
         {
-            Reset();
+            byte[] cartHeader = new byte[0x150];    // Header is 336 bytes
             using (Stream fileStream = File.OpenRead(romPath))
             {
-                // The first 16K is always read into the beginning of memory
-                fileStream.Read(Memory.Data, 0x00, 0x4000);
-                CartInfo = new CartridgeInfo(Memory);
+                fileStream.Read(cartHeader, 0x0, cartHeader.Length);
+                CartInfo = new CartridgeInfo(cartHeader);
+                fileStream.Seek(0, SeekOrigin.Begin);
+                Memory = CreateMBC(CartInfo.CartType, fileStream);
             }
+            Reset();
         }
 
         // Power-up sequence, reset registers and memory
@@ -60,6 +59,26 @@ namespace SharpBoy.Core
             ProgramCounter = 0x100;
 
             Memory.Reset();
+        }
+
+        private MemoryBankController CreateMBC(CartType cartType, Stream fileStream)
+        {
+            MemoryBankController mbc = null;
+
+            switch (cartType)
+            {
+                case CartType.RomOnly:
+                    mbc = new ROMOnly(fileStream);
+                    break;
+                case CartType.MBC1:
+                    mbc = new MBC1(fileStream);
+                    break;
+                case CartType.MBC2:
+                    mbc = new MBC2(fileStream);
+                    break;
+            }
+
+            return mbc;
         }
     }
 }

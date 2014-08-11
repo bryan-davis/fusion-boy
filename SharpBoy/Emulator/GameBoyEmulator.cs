@@ -91,7 +91,12 @@ namespace SharpBoy.Emulator
 
         private void UpdateFrame()
         {
+            int currentCycles = 0;
 
+            while (currentCycles < cyclesPerFrame)
+            {
+
+            }
         }
 
         private void Render()
