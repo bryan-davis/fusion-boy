@@ -47,15 +47,383 @@ namespace SharpBoy.Core
             Reset();
         }
 
-        public byte ReadNextOpCode()
+        public byte ReadNextValue()
         {
-            byte opCode = Memory[ProgramCounter++];
-            return opCode;
+            byte value = Memory[ProgramCounter++];
+            return value;
         }
 
         public void ExecuteOpCode(byte opCode)
         {
+            switch (opCode)
+            {
+                case 0x01: break;
+                case 0x02: break;
+                case 0x03: break;
+                case 0x04: break;
+                case 0x05: break;
+                case 0x06: LoadValueToRegister8Bit(ref RegisterBC.High); 
+                    break;
+                case 0x08: break;
+                case 0x09: break;
+                case 0x0A: break;
+                case 0x0B: break;
+                case 0x0C: break;
+                case 0x0D: break;
+                case 0x0E: LoadValueToRegister8Bit(ref RegisterBC.Low); 
+                    break;
+                case 0x11: break;
+                case 0x12: break;
+                case 0x13: break;
+                case 0x14: break;
+                case 0x15: break;
+                case 0x16: LoadValueToRegister8Bit(ref RegisterDE.High); 
+                    break;
+                case 0x18: break;
+                case 0x19: break;
+                case 0x1A: break;
+                case 0x1B: break;
+                case 0x1C: break;
+                case 0x1D: break;
+                case 0x1E: LoadValueToRegister8Bit(ref RegisterDE.Low); 
+                    break;
+                case 0x20: break;
+                case 0x21: break;
+                case 0x22: break;
+                case 0x23: break;
+                case 0x24: break;
+                case 0x25: break;
+                case 0x26: LoadValueToRegister8Bit(ref RegisterHL.High); 
+                    break;
+                case 0x28: break;
+                case 0x29: break;
+                case 0x2A: break;
+                case 0x2B: break;
+                case 0x2C: break;
+                case 0x2D: break;
+                case 0x2E: LoadValueToRegister8Bit(ref RegisterHL.Low); 
+                    break;
+                case 0x30: break;
+                case 0x31: break;
+                case 0x32: break;
+                case 0x33: break;
+                case 0x34: break;
+                case 0x35: break;
+                case 0x36: break;
+                case 0x38: break;
+                case 0x39: break;
+                case 0x3A: break;
+                case 0x3B: break;
+                case 0x3C: break;
+                case 0x3D: break;
+                case 0x3E: break;
+                case 0x40: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterBC.High);
+                    break;
+                case 0x41: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterBC.Low); 
+                    break;
+                case 0x42: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterDE.High); 
+                    break;
+                case 0x43: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterDE.Low);
+                    break;
+                case 0x44: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterHL.High);
+                    break;
+                case 0x45: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterHL.Low); 
+                    break;
+                case 0x46: LoadMemoryToRegister8Bit(ref RegisterBC.High, RegisterHL);
+                    break;
+                case 0x47: break;
+                case 0x48: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterBC.High);
+                    break;
+                case 0x49: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterBC.Low);
+                    break;
+                case 0x4A: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterDE.High);
+                    break;
+                case 0x4B: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterDE.Low);
+                    break;
+                case 0x4C: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterHL.High);
+                    break;
+                case 0x4D: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterHL.Low);
+                    break;
+                case 0x4E: LoadMemoryToRegister8Bit(ref RegisterBC.Low, RegisterHL);
+                    break;
+                case 0x4F: break;
+                case 0x50: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterBC.High);
+                    break;
+                case 0x51: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterBC.Low);
+                    break;
+                case 0x52: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterDE.High);
+                    break;
+                case 0x53: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterDE.Low);
+                    break;
+                case 0x54: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterHL.High);
+                    break;
+                case 0x55: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterHL.Low);
+                    break;
+                case 0x56: LoadMemoryToRegister8Bit(ref RegisterDE.High, RegisterHL);
+                    break;
+                case 0x57: break;
+                case 0x58: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterBC.High);
+                    break;
+                case 0x59: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterBC.Low);
+                    break;
+                case 0x5A: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterDE.High);
+                    break;
+                case 0x5B: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterDE.Low);
+                    break;
+                case 0x5C: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterHL.High);
+                    break;
+                case 0x5D: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterHL.Low);
+                    break;
+                case 0x5E: LoadMemoryToRegister8Bit(ref RegisterDE.Low, RegisterHL);
+                    break;
+                case 0x5F: break;
+                case 0x60: break;
+                case 0x61: break;
+                case 0x62: break;
+                case 0x63: break;
+                case 0x64: break;
+                case 0x65: break;
+                case 0x66: break;
+                case 0x67: break;
+                case 0x68: break;
+                case 0x69: break;
+                case 0x6A: break;
+                case 0x6B: break;
+                case 0x6C: break;
+                case 0x6D: break;
+                case 0x6E: break;
+                case 0x6F: break;
+                case 0x70: break;
+                case 0x71: break;
+                case 0x72: break;
+                case 0x73: break;
+                case 0x74: break;
+                case 0x75: break;
+                case 0x77: break;
+                case 0x78: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterBC.High); 
+                    break;
+                case 0x79: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterBC.Low); 
+                    break;
+                case 0x7A: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterDE.High); 
+                    break;
+                case 0x7B: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterDE.Low); 
+                    break;
+                case 0x7C: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterHL.High); 
+                    break;
+                case 0x7D: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterHL.Low); 
+                    break;
+                case 0x7E: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterHL);
+                    break;
+                case 0x7F: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterAF.High); 
+                    break;
+                case 0x80: break;
+                case 0x81: break;
+                case 0x82: break;
+                case 0x83: break;
+                case 0x84: break;
+                case 0x85: break;
+                case 0x86: break;
+                case 0x87: break;
+                case 0x88: break;
+                case 0x89: break;
+                case 0x8A: break;
+                case 0x8B: break;
+                case 0x8C: break;
+                case 0x8D: break;
+                case 0x8E: break;
+                case 0x8F: break;
+                case 0x90: break;
+                case 0x91: break;
+                case 0x92: break;
+                case 0x93: break;
+                case 0x94: break;
+                case 0x95: break;
+                case 0x96: break;
+                case 0x97: break;
+                case 0x98: break;
+                case 0x99: break;
+                case 0x9A: break;
+                case 0x9B: break;
+                case 0x9C: break;
+                case 0x9D: break;
+                case 0x9E: break;
+                case 0x9F: break;
+                case 0xA0: break;
+                case 0xA1: break;
+                case 0xA2: break;
+                case 0xA3: break;
+                case 0xA4: break;
+                case 0xA5: break;
+                case 0xA6: break;
+                case 0xA7: break;
+                case 0xA8: break;
+                case 0xA9: break;
+                case 0xAA: break;
+                case 0xAB: break;
+                case 0xAC: break;
+                case 0xAD: break;
+                case 0xAE: break;
+                case 0xAF: break;
+                case 0xB0: break;
+                case 0xB1: break;
+                case 0xB2: break;
+                case 0xB3: break;
+                case 0xB4: break;
+                case 0xB5: break;
+                case 0xB6: break;
+                case 0xB7: break;
+                case 0xB8: break;
+                case 0xB9: break;
+                case 0xBA: break;
+                case 0xBB: break;
+                case 0xBC: break;
+                case 0xBD: break;
+                case 0xBE: break;
+                case 0xBF: break;
+                case 0xC0: break;
+                case 0xC1: break;
+                case 0xC2: break;
+                case 0xC3: break;
+                case 0xC4: break;
+                case 0xC5: break;
+                case 0xC6: break;
+                case 0xC7: break;
+                case 0xC8: break;
+                case 0xC9: break;
+                case 0xCA: break;
+                case 0xCB: ExecuteExtendedOpCode(opCode); 
+                    break;
+                case 0xCC: break;
+                case 0xCD: break;
+                case 0xCE: break;
+                case 0xCF: break;
+                case 0xD0: break;
+                case 0xD1: break;
+                case 0xD2: break;
+                case 0xD4: break;
+                case 0xD5: break;
+                case 0xD6: break;
+                case 0xD7: break;
+                case 0xD8: break;
+                case 0xD9: break;
+                case 0xDA: break;
+                case 0xDC: break;
+                case 0xDF: break;
+                case 0xE0: break;
+                case 0xE1: break;
+                case 0xE2: break;
+                case 0xE5: break;
+                case 0xE6: break;
+                case 0xE7: break;
+                case 0xE8: break;
+                case 0xE9: break;
+                case 0xEA: break;
+                case 0xEE: break;
+                case 0xEF: break;
+                case 0xF0: break;
+                case 0xF1: break;
+                case 0xF2: break;
+                case 0xF5: break;
+                case 0xF6: break;
+                case 0xF7: break;
+                case 0xF8: break;
+                case 0xF9: break;
+                case 0xFA: break;
+                case 0xFE: break;
+                case 0xFF: break;
+            }
+        }
 
+        // For all op codes prefixed with 0xCB
+        private void ExecuteExtendedOpCode(byte opCode)
+        {
+            ushort extended = (ushort)(opCode << 8);
+            byte next = ReadNextValue();
+            extended |= next;
+
+            switch (extended)
+            {
+                case 0xCB00: break;
+                case 0xCB01: break;
+                case 0xCB02: break;
+                case 0xCB03: break;
+                case 0xCB04: break;
+                case 0xCB05: break;
+                case 0xCB06: break;
+                case 0xCB07: break;
+                case 0xCB08: break;
+                case 0xCB09: break;
+                case 0xCB0A: break;
+                case 0xCB0B: break;
+                case 0xCB0C: break;
+                case 0xCB0D: break;
+                case 0xCB0E: break;
+                case 0xCB0F: break;
+                case 0xCB10: break;
+                case 0xCB11: break;
+                case 0xCB12: break;
+                case 0xCB13: break;
+                case 0xCB14: break;
+                case 0xCB15: break;
+                case 0xCB16: break;
+                case 0xCB17: break;
+                case 0xCB18: break;
+                case 0xCB19: break;
+                case 0xCB1A: break;
+                case 0xCB1B: break;
+                case 0xCB1C: break;
+                case 0xCB1D: break;
+                case 0xCB1E: break;
+                case 0xCB1F: break;
+                case 0xCB20: break;
+                case 0xCB21: break;
+                case 0xCB22: break;
+                case 0xCB23: break;
+                case 0xCB24: break;
+                case 0xCB25: break;
+                case 0xCB26: break;
+                case 0xCB27: break;
+                case 0xCB28: break;
+                case 0xCB29: break;
+                case 0xCB2A: break;
+                case 0xCB2B: break;
+                case 0xCB2C: break;
+                case 0xCB2D: break;
+                case 0xCB2E: break;
+                case 0xCB2F: break;
+                case 0xCB38: break;
+                case 0xCB39: break;
+                case 0xCB3A: break;
+                case 0xCB3B: break;
+                case 0xCB3C: break;
+                case 0xCB3D: break;
+                case 0xCB3E: break;
+                case 0xCB3F: break;
+                case 0xCB40: break;
+                case 0xCB41: break;
+                case 0xCB42: break;
+                case 0xCB43: break;
+                case 0xCB44: break;
+                case 0xCB45: break;
+                case 0xCB46: break;
+                case 0xCB47: break;
+                case 0xCB80: break;
+                case 0xCB81: break;
+                case 0xCB82: break;
+                case 0xCB83: break;
+                case 0xCB84: break;
+                case 0xCB85: break;
+                case 0xCB86: break;
+                case 0xCB87: break;
+                case 0xCBC0: break;
+                case 0xCBC1: break;
+                case 0xCBC2: break;
+                case 0xCBC3: break;
+                case 0xCBC4: break;
+                case 0xCBC5: break;
+                case 0xCBC6: break;
+                case 0xCBC7: break;
+            }
         }
 
         // Power-up sequence, reset registers and memory
@@ -91,6 +459,21 @@ namespace SharpBoy.Core
             }
 
             return mbc;
+        }
+
+        private void LoadValueToRegister8Bit(ref byte register)
+        {
+            register = ReadNextValue();
+        }
+
+        private void LoadRegisterToRegister8Bit(ref byte toRegister, byte fromRegister)
+        {
+            toRegister = fromRegister;
+        }
+
+        private void LoadMemoryToRegister8Bit(ref byte toRegister, Register fromRegister)
+        {
+            toRegister = Memory[fromRegister.Value];
         }
 
         // TODO: Re-evaluate this after core op codes have been implemented.

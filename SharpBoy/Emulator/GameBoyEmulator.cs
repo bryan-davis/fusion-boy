@@ -95,7 +95,7 @@ namespace SharpBoy.Emulator
 
             while (currentCycles < cyclesPerFrame)
             {
-                byte opCode = cpu.ReadNextOpCode();
+                byte opCode = cpu.ReadNextValue();
                 cpu.ExecuteOpCode(opCode);
                 int cycles;
                 if (cpu.CycleMap.TryGetValue(opCode, out cycles))
