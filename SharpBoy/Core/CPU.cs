@@ -53,12 +53,23 @@ namespace SharpBoy.Core
             return value;
         }
 
+        // TODO: Verify correct endianess is used
+        public ushort ReadNextTwoValues()
+        {
+            byte value = Memory[ProgramCounter++];
+            ushort values = (ushort)(value << 8);
+            value = Memory[ProgramCounter++];
+            values |= value;
+            return values;
+        }
+
         public void ExecuteOpCode(byte opCode)
         {
             switch (opCode)
             {
                 case 0x01: break;
-                case 0x02: break;
+                case 0x02: LoadValueToMemory8Bit(RegisterBC.Value, RegisterAF.High);
+                    break;
                 case 0x03: break;
                 case 0x04: break;
                 case 0x05: break;
@@ -66,14 +77,16 @@ namespace SharpBoy.Core
                     break;
                 case 0x08: break;
                 case 0x09: break;
-                case 0x0A: break;
+                case 0x0A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterBC.Value);
+                    break;
                 case 0x0B: break;
                 case 0x0C: break;
                 case 0x0D: break;
                 case 0x0E: LoadValueToRegister8Bit(ref RegisterBC.Low); 
                     break;
                 case 0x11: break;
-                case 0x12: break;
+                case 0x12: LoadValueToMemory8Bit(RegisterDE.Value, RegisterAF.High);
+                    break;
                 case 0x13: break;
                 case 0x14: break;
                 case 0x15: break;
@@ -81,7 +94,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x18: break;
                 case 0x19: break;
-                case 0x1A: break;
+                case 0x1A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterDE.Value);
+                    break;
                 case 0x1B: break;
                 case 0x1C: break;
                 case 0x1D: break;
@@ -89,7 +103,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x20: break;
                 case 0x21: break;
-                case 0x22: break;
+                case 0x22: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High); RegisterHL.Value++;
+                    break;
                 case 0x23: break;
                 case 0x24: break;
                 case 0x25: break;
@@ -97,7 +112,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x28: break;
                 case 0x29: break;
-                case 0x2A: break;
+                case 0x2A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterHL.Value); RegisterHL.Value++;
+                    break;
                 case 0x2B: break;
                 case 0x2C: break;
                 case 0x2D: break;
@@ -105,18 +121,22 @@ namespace SharpBoy.Core
                     break;
                 case 0x30: break;
                 case 0x31: break;
-                case 0x32: break;
+                case 0x32: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High); RegisterHL.Value--;
+                    break;
                 case 0x33: break;
                 case 0x34: break;
                 case 0x35: break;
-                case 0x36: break;
+                case 0x36: LoadValueToMemory8Bit(RegisterHL.Value, ReadNextValue());
+                    break;
                 case 0x38: break;
                 case 0x39: break;
-                case 0x3A: break;
+                case 0x3A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterHL.Value); RegisterHL.Value--;
+                    break;
                 case 0x3B: break;
                 case 0x3C: break;
                 case 0x3D: break;
-                case 0x3E: break;
+                case 0x3E: LoadValueToRegister8Bit(ref RegisterAF.High);
+                    break;
                 case 0x40: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterBC.High);
                     break;
                 case 0x41: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterBC.Low); 
@@ -129,9 +149,10 @@ namespace SharpBoy.Core
                     break;
                 case 0x45: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterHL.Low); 
                     break;
-                case 0x46: LoadMemoryToRegister8Bit(ref RegisterBC.High, RegisterHL);
+                case 0x46: LoadMemoryToRegister8Bit(ref RegisterBC.High, RegisterHL.Value);
                     break;
-                case 0x47: break;
+                case 0x47: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterAF.High);
+                    break;
                 case 0x48: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterBC.High);
                     break;
                 case 0x49: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterBC.Low);
@@ -144,9 +165,10 @@ namespace SharpBoy.Core
                     break;
                 case 0x4D: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterHL.Low);
                     break;
-                case 0x4E: LoadMemoryToRegister8Bit(ref RegisterBC.Low, RegisterHL);
+                case 0x4E: LoadMemoryToRegister8Bit(ref RegisterBC.Low, RegisterHL.Value);
                     break;
-                case 0x4F: break;
+                case 0x4F: LoadRegisterToRegister8Bit(ref RegisterBC.Low, RegisterAF.High);
+                    break;
                 case 0x50: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterBC.High);
                     break;
                 case 0x51: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterBC.Low);
@@ -159,9 +181,10 @@ namespace SharpBoy.Core
                     break;
                 case 0x55: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterHL.Low);
                     break;
-                case 0x56: LoadMemoryToRegister8Bit(ref RegisterDE.High, RegisterHL);
+                case 0x56: LoadMemoryToRegister8Bit(ref RegisterDE.High, RegisterHL.Value);
                     break;
-                case 0x57: break;
+                case 0x57: LoadRegisterToRegister8Bit(ref RegisterDE.High, RegisterAF.High);
+                    break;
                 case 0x58: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterBC.High);
                     break;
                 case 0x59: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterBC.Low);
@@ -174,32 +197,56 @@ namespace SharpBoy.Core
                     break;
                 case 0x5D: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterHL.Low);
                     break;
-                case 0x5E: LoadMemoryToRegister8Bit(ref RegisterDE.Low, RegisterHL);
+                case 0x5E: LoadMemoryToRegister8Bit(ref RegisterDE.Low, RegisterHL.Value);
                     break;
-                case 0x5F: break;
-                case 0x60: break;
-                case 0x61: break;
-                case 0x62: break;
-                case 0x63: break;
-                case 0x64: break;
-                case 0x65: break;
-                case 0x66: break;
-                case 0x67: break;
-                case 0x68: break;
-                case 0x69: break;
-                case 0x6A: break;
-                case 0x6B: break;
-                case 0x6C: break;
-                case 0x6D: break;
-                case 0x6E: break;
-                case 0x6F: break;
-                case 0x70: break;
-                case 0x71: break;
-                case 0x72: break;
-                case 0x73: break;
-                case 0x74: break;
-                case 0x75: break;
-                case 0x77: break;
+                case 0x5F: LoadRegisterToRegister8Bit(ref RegisterDE.Low, RegisterAF.High);
+                    break;
+                case 0x60: LoadRegisterToRegister8Bit(ref RegisterHL.High, RegisterBC.High);
+                    break;
+                case 0x61: LoadRegisterToRegister8Bit(ref RegisterHL.High, RegisterBC.Low);
+                    break;
+                case 0x62: LoadRegisterToRegister8Bit(ref RegisterHL.High, RegisterDE.High);
+                    break;
+                case 0x63: LoadRegisterToRegister8Bit(ref RegisterHL.High, RegisterDE.Low);
+                    break;
+                case 0x64: LoadRegisterToRegister8Bit(ref RegisterHL.High, RegisterHL.High);
+                    break;
+                case 0x65: LoadRegisterToRegister8Bit(ref RegisterHL.High, RegisterHL.Low);
+                    break;
+                case 0x66: LoadMemoryToRegister8Bit(ref RegisterHL.High, RegisterHL.Value);
+                    break;
+                case 0x67: LoadRegisterToRegister8Bit(ref RegisterHL.High, RegisterAF.High);
+                    break;
+                case 0x68: LoadRegisterToRegister8Bit(ref RegisterHL.Low, RegisterBC.High);
+                    break;
+                case 0x69: LoadRegisterToRegister8Bit(ref RegisterHL.Low, RegisterBC.Low);
+                    break;
+                case 0x6A: LoadRegisterToRegister8Bit(ref RegisterHL.Low, RegisterDE.High);
+                    break;
+                case 0x6B: LoadRegisterToRegister8Bit(ref RegisterHL.Low, RegisterDE.Low);
+                    break;
+                case 0x6C: LoadRegisterToRegister8Bit(ref RegisterHL.Low, RegisterHL.High);
+                    break;
+                case 0x6D: LoadRegisterToRegister8Bit(ref RegisterHL.Low, RegisterHL.Low);
+                    break;
+                case 0x6E: LoadMemoryToRegister8Bit(ref RegisterHL.Low, RegisterHL.Value);
+                    break;
+                case 0x6F: LoadRegisterToRegister8Bit(ref RegisterHL.Low, RegisterAF.High);
+                    break;
+                case 0x70: LoadValueToMemory8Bit(RegisterHL.Value, RegisterBC.High);
+                    break;                             
+                case 0x71: LoadValueToMemory8Bit(RegisterHL.Value, RegisterBC.Low);
+                    break;                             
+                case 0x72: LoadValueToMemory8Bit(RegisterHL.Value, RegisterDE.High);
+                    break;                             
+                case 0x73: LoadValueToMemory8Bit(RegisterHL.Value, RegisterDE.Low);
+                    break;                             
+                case 0x74: LoadValueToMemory8Bit(RegisterHL.Value, RegisterHL.High);
+                    break;                             
+                case 0x75: LoadValueToMemory8Bit(RegisterHL.Value, RegisterHL.Low);
+                    break;
+                case 0x77: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High);
+                    break;
                 case 0x78: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterBC.High); 
                     break;
                 case 0x79: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterBC.Low); 
@@ -212,7 +259,7 @@ namespace SharpBoy.Core
                     break;
                 case 0x7D: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterHL.Low); 
                     break;
-                case 0x7E: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterHL);
+                case 0x7E: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterHL.Value);
                     break;
                 case 0x7F: LoadRegisterToRegister8Bit(ref RegisterAF.High, RegisterAF.High); 
                     break;
@@ -309,26 +356,32 @@ namespace SharpBoy.Core
                 case 0xDA: break;
                 case 0xDC: break;
                 case 0xDF: break;
-                case 0xE0: break;
+                case 0xE0: LoadValueToMemory8Bit((ushort)(0xFF00 + ReadNextValue()), RegisterAF.High);
+                    break;
                 case 0xE1: break;
-                case 0xE2: break;
+                case 0xE2: LoadValueToMemory8Bit((ushort)(0xFF00 + RegisterBC.Low), RegisterAF.High);
+                    break;
                 case 0xE5: break;
                 case 0xE6: break;
                 case 0xE7: break;
                 case 0xE8: break;
                 case 0xE9: break;
-                case 0xEA: break;
+                case 0xEA: LoadValueToMemory8Bit(ReadNextTwoValues(), RegisterAF.High);
+                    break;
                 case 0xEE: break;
                 case 0xEF: break;
-                case 0xF0: break;
+                case 0xF0: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + ReadNextValue()));
+                    break;
                 case 0xF1: break;
-                case 0xF2: break;
+                case 0xF2: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + RegisterBC.Low));
+                    break;
                 case 0xF5: break;
                 case 0xF6: break;
                 case 0xF7: break;
                 case 0xF8: break;
                 case 0xF9: break;
-                case 0xFA: break;
+                case 0xFA: LoadMemoryToRegister8Bit(ref RegisterAF.High, ReadNextTwoValues());
+                    break;
                 case 0xFE: break;
                 case 0xFF: break;
             }
@@ -471,9 +524,14 @@ namespace SharpBoy.Core
             toRegister = fromRegister;
         }
 
-        private void LoadMemoryToRegister8Bit(ref byte toRegister, Register fromRegister)
+        private void LoadMemoryToRegister8Bit(ref byte toRegister, ushort location)
         {
-            toRegister = Memory[fromRegister.Value];
+            toRegister = Memory[location];
+        }
+
+        private void LoadValueToMemory8Bit(ushort location, byte value)
+        {
+            Memory[location] = value;
         }
 
         // TODO: Re-evaluate this after core op codes have been implemented.
