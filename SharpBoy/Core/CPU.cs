@@ -12,14 +12,14 @@ namespace SharpBoy.Core
         public Register RegisterBC { get; private set; }
         public Register RegisterDE { get; private set; }
         public Register RegisterHL { get; private set; }
-        public ushort StackPointer { get; private set; }
+        public Register StackPointer { get; private set; }
         public ushort ProgramCounter { get; private set; }
 
         // Flags; http://problemkaputt.de/pandocs.htm#cpuregistersandflags
-        public const int FlagZ = 1 << 7;    // Zero Flag
-        public const int FlagN = 1 << 6;    // Add/Sub-Flag
-        public const int FlagH = 1 << 5;    // Half Carry Flag            
-        public const int FlagC = 1 << 4;    // Carry Flag
+        public readonly byte FlagZ = 1 << 7;    // Zero Flag
+        public readonly byte FlagN = 1 << 6;    // Add/Sub Flag
+        public readonly byte FlagH = 1 << 5;    // Half Carry Flag            
+        public readonly byte FlagC = 1 << 4;    // Carry Flag
 
         public MemoryBankController Memory { get; private set; }
         public CartridgeInfo CartInfo { get; private set; }
@@ -30,7 +30,7 @@ namespace SharpBoy.Core
             RegisterBC = new Register();
             RegisterDE = new Register();
             RegisterHL = new Register();
-            StackPointer = 0;
+            StackPointer = new Register();
             ProgramCounter = 0;            
         }
 
@@ -67,7 +67,8 @@ namespace SharpBoy.Core
         {
             switch (opCode)
             {
-                case 0x01: break;
+                case 0x01: LoadValueToRegister16Bit(RegisterBC);
+                    break;
                 case 0x02: LoadValueToMemory8Bit(RegisterBC.Value, RegisterAF.High);
                     break;
                 case 0x03: break;
@@ -84,7 +85,8 @@ namespace SharpBoy.Core
                 case 0x0D: break;
                 case 0x0E: LoadValueToRegister8Bit(ref RegisterBC.Low); 
                     break;
-                case 0x11: break;
+                case 0x11: LoadValueToRegister16Bit(RegisterDE);
+                    break;
                 case 0x12: LoadValueToMemory8Bit(RegisterDE.Value, RegisterAF.High);
                     break;
                 case 0x13: break;
@@ -102,7 +104,8 @@ namespace SharpBoy.Core
                 case 0x1E: LoadValueToRegister8Bit(ref RegisterDE.Low); 
                     break;
                 case 0x20: break;
-                case 0x21: break;
+                case 0x21: LoadValueToRegister16Bit(RegisterHL);
+                    break;
                 case 0x22: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High); RegisterHL.Value++;
                     break;
                 case 0x23: break;
@@ -120,7 +123,8 @@ namespace SharpBoy.Core
                 case 0x2E: LoadValueToRegister8Bit(ref RegisterHL.Low); 
                     break;
                 case 0x30: break;
-                case 0x31: break;
+                case 0x31: LoadValueToRegister16Bit(StackPointer);
+                    break;
                 case 0x32: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High); RegisterHL.Value--;
                     break;
                 case 0x33: break;
@@ -378,8 +382,10 @@ namespace SharpBoy.Core
                 case 0xF5: break;
                 case 0xF6: break;
                 case 0xF7: break;
-                case 0xF8: break;
-                case 0xF9: break;
+                case 0xF8: LoadStackPointerToRegisterHL();
+                    break;
+                case 0xF9: LoadRegisterToRegister16Bit(StackPointer, RegisterHL);
+                    break;
                 case 0xFA: LoadMemoryToRegister8Bit(ref RegisterAF.High, ReadNextTwoValues());
                     break;
                 case 0xFE: break;
@@ -488,7 +494,7 @@ namespace SharpBoy.Core
             RegisterDE.Value = 0x00D8;
             RegisterHL.Value = 0x014D;
             
-            StackPointer = 0xFFFE;
+            StackPointer.Value = 0xFFFE;
             ProgramCounter = 0x100;
 
             Memory.Reset();
@@ -534,10 +540,52 @@ namespace SharpBoy.Core
             Memory[location] = value;
         }
 
+        private void LoadValueToRegister16Bit(Register register)
+        {
+            register.Value = ReadNextTwoValues();
+        }
+
+        private void LoadRegisterToRegister16Bit(Register toRegister, Register fromRegister)
+        {
+            toRegister.Value = fromRegister.Value;
+        }
+
+        private void LoadMemoryToRegister16Bit(Register toRegister, ushort location)
+        {
+            toRegister.Value = Memory[location];
+        }
+
+        private void LoadStackPointerToRegisterHL()
+        {
+            byte value = ReadNextValue();
+            int result = StackPointer.Value + value;
+            RegisterHL.Value = (ushort)result;
+
+            // Set the carry flag if there was an overflow
+            // Clear it if there was not
+            if (result > 0xFFFF)
+                RegisterAF.Low |= FlagC;
+            else
+                RegisterAF.Low &= (byte)~FlagC;
+
+            int halfCarryResult = (StackPointer.Value & 0x0F) + (value & 0x0F);
+            // Set the half carry flag if there was an overflow in the lower 4 bits
+            // Clear it if there was not
+            if (halfCarryResult > 0xF)
+                RegisterAF.Low |= FlagH;
+            else
+                RegisterAF.Low &= (byte)~FlagH;
+
+            // Clear the Zero and Add/Sub flags
+            RegisterAF.Low &= (byte)~FlagZ;
+            RegisterAF.Low &= (byte)~FlagN;
+        }
+
         // TODO: Re-evaluate this after core op codes have been implemented.
         // Maps the cycle count that each op code takes.
         public readonly Dictionary<int, int> CycleMap = new Dictionary<int, int>()
         {
+            { 0x00,   4  },
             { 0x01,   12 }, { 0x02,   8  }, { 0x03,   8  }, { 0x04,   4  }, { 0x05,   4  }, 
             { 0x06,   8  }, { 0x08,   20 }, { 0x09,   8  }, { 0x0A,   8  }, { 0x0B,   8  }, 
             { 0x0C,   4  }, { 0x0D,   4  }, { 0x0E,   8  }, { 0x11,   12 }, { 0x12,   8  }, 
