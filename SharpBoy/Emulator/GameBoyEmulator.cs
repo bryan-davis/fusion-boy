@@ -1,5 +1,6 @@
 ﻿using SharpBoy.Core;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
@@ -7,6 +8,10 @@ namespace SharpBoy.Emulator
 {
     public class GameBoyEmulator : ViewModelBase, IEmulator
     {
+        private Stopwatch frameRateTimer = new Stopwatch();
+        private int frameCount = 0;
+        HashSet<int> missingCodes = new HashSet<int>();
+        
         public event RenderEventHandler RenderHandler;
 
         private int cyclesPerFrame;
@@ -44,18 +49,20 @@ namespace SharpBoy.Emulator
 
         public bool Stop { get; set; }
 
+        // TODO: This doesn't limit frames as expected.
         public void Run()
         {
             Stopwatch frameRateLimiter = new Stopwatch();
             frameRateLimiter.Start();
             double microsecondsPerTick = (1000.0 * 1000.0) / Stopwatch.Frequency;
 
+            frameRateTimer.Start();            
             Stop = false;
             while (!Stop)
             {
                 double elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
                 if (elapsedTime >= microsecondsPerFrame)
-                {
+                {                    
                     UpdateFrame();
                     Render();
                     frameRateLimiter.Restart();
@@ -96,18 +103,41 @@ namespace SharpBoy.Emulator
             while (currentCycles < cyclesPerFrame)
             {
                 byte opCode = cpu.ReadNextValue();
-                cpu.ExecuteOpCode(opCode);
+                int lookup;
+                if (opCode != 0xCB)
+                {
+                    lookup = opCode;
+                    cpu.ExecuteOpCode(opCode);
+                }
+                else
+                {
+                    ushort extendedOpCode = (ushort)(opCode << 8);
+                    extendedOpCode |= cpu.ReadNextValue();
+                    cpu.ExecuteExtendedOpCode(extendedOpCode);
+                    lookup = extendedOpCode;
+                }
+
                 int cycles;
-                if (cpu.CycleMap.TryGetValue(opCode, out cycles))
+                if (cpu.CycleMap.TryGetValue(lookup, out cycles))
                 {
                     currentCycles += cycles;
                 }
-            }
+                else
+                {
+                    missingCodes.Add(lookup);
+                }
+            }            
         }
 
         private void Render()
         {
-
+            frameCount++;
+            if (frameRateTimer.Elapsed.Seconds >= 1)
+            {
+                Debug.WriteLine("{0} FPS", frameCount);
+                frameCount = 0;
+                frameRateTimer.Restart();
+            }
         }
 
         private void CalculateSpeedLimit()
