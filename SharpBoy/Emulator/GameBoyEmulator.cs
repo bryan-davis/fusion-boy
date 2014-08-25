@@ -8,7 +8,7 @@ namespace SharpBoy.Emulator
 {
     public class GameBoyEmulator : ViewModelBase, IEmulator
     {
-        private Stopwatch frameRateTimer = new Stopwatch();
+        private Stopwatch frameRateTimer;
         private int frameCount = 0;
         HashSet<int> missingCodes = new HashSet<int>();
         
@@ -49,24 +49,24 @@ namespace SharpBoy.Emulator
 
         public bool Stop { get; set; }
 
-        // TODO: This doesn't limit frames as expected.
         public void Run()
         {
-            Stopwatch frameRateLimiter = new Stopwatch();
-            frameRateLimiter.Start();
+            Stopwatch frameRateLimiter = Stopwatch.StartNew();
             double microsecondsPerTick = (1000.0 * 1000.0) / Stopwatch.Frequency;
+            frameRateTimer = Stopwatch.StartNew();           
 
-            frameRateTimer.Start();            
             Stop = false;
             while (!Stop)
             {
-                double elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
-                if (elapsedTime >= microsecondsPerFrame)
-                {                    
-                    UpdateFrame();
-                    Render();
-                    frameRateLimiter.Restart();
-                }
+                frameRateLimiter.Restart();
+                UpdateFrame();
+                Render();
+
+                double elapsedTime;
+                do
+                {
+                    elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
+                } while (elapsedTime < microsecondsPerFrame);
             }
         }
 
@@ -103,10 +103,10 @@ namespace SharpBoy.Emulator
             while (currentCycles < cyclesPerFrame)
             {
                 byte opCode = cpu.ReadNextValue();
-                int lookup;
+                int cycleLookup;
                 if (opCode != 0xCB)
                 {
-                    lookup = opCode;
+                    cycleLookup = opCode;
                     cpu.ExecuteOpCode(opCode);
                 }
                 else
@@ -114,17 +114,17 @@ namespace SharpBoy.Emulator
                     ushort extendedOpCode = (ushort)(opCode << 8);
                     extendedOpCode |= cpu.ReadNextValue();
                     cpu.ExecuteExtendedOpCode(extendedOpCode);
-                    lookup = extendedOpCode;
+                    cycleLookup = extendedOpCode;
                 }
 
                 int cycles;
-                if (cpu.CycleMap.TryGetValue(lookup, out cycles))
+                if (cpu.CycleMap.TryGetValue(cycleLookup, out cycles))
                 {
                     currentCycles += cycles;
                 }
                 else
                 {
-                    missingCodes.Add(lookup);
+                    missingCodes.Add(cycleLookup);
                 }
             }            
         }
@@ -132,7 +132,7 @@ namespace SharpBoy.Emulator
         private void Render()
         {
             frameCount++;
-            if (frameRateTimer.Elapsed.Seconds >= 1)
+            if (frameRateTimer.ElapsedMilliseconds >= 1000)
             {
                 Debug.WriteLine("{0} FPS", frameCount);
                 frameCount = 0;
@@ -146,12 +146,12 @@ namespace SharpBoy.Emulator
              * millisecond precision isn't good enough, as 16 ms slices equate to
              * ~62 updates per second, and 17 ms equate to ~58.
             */
-            int framesPerSecond = Properties.Settings.Default.targetFrameRate;
+            double framesPerSecond = Properties.Settings.Default.targetFrameRate;
             double millsecondsPerFrame = 1000.0 / framesPerSecond;
             microsecondsPerFrame = 1000.0 * millsecondsPerFrame;
 
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
-            cyclesPerFrame = cyclesPerSecond / framesPerSecond;
+            cyclesPerFrame = (int)(cyclesPerSecond / framesPerSecond);
         }
     }
 }
