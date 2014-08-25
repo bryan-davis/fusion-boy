@@ -25,10 +25,10 @@ namespace SharpBoy.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("60")]
-        public int targetFrameRate {
+        [global::System.Configuration.DefaultSettingValueAttribute("59.73")]
+        public double targetFrameRate {
             get {
-                return ((int)(this["targetFrameRate"]));
+                return ((double)(this["targetFrameRate"]));
             }
             set {
                 this["targetFrameRate"] = value;

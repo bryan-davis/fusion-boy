@@ -2,8 +2,8 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SharpBoy.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="targetFrameRate" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">60</Value>
+    <Setting Name="targetFrameRate" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">59.73</Value>
     </Setting>
     <Setting Name="cyclesPerSecond" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">4194304</Value>
