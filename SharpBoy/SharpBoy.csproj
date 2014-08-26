@@ -68,6 +68,7 @@
     <Compile Include="Cartridge\MBC1.cs" />
     <Compile Include="Core\CPU.cs" />
     <Compile Include="Cartridge\MemoryBankController.cs" />
+    <Compile Include="Core\CPUInstructions.cs" />
     <Compile Include="Core\Register.cs" />
     <Compile Include="Emulator\GameBoyEmulator.cs" />
     <Compile Include="Emulator\IEmulator.cs" />

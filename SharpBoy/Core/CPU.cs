@@ -6,7 +6,7 @@ using System.IO;
 namespace SharpBoy.Core
 {
     [Serializable]
-    public class CPU
+    public partial class CPU
     {
         public Register RegisterAF { get; private set; }
         public Register RegisterBC { get; private set; }
@@ -72,7 +72,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x02: LoadValueToMemory8Bit(RegisterBC.Value, RegisterAF.High);
                     break;
-                case 0x03: break;
+                case 0x03: IncrementRegister16Bit(RegisterBC);
+                    break;
                 case 0x04: IncrementRegister8Bit(ref RegisterBC.High);
                     break;
                 case 0x05: DecrementRegister8Bit(ref RegisterBC.High);
@@ -85,7 +86,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x0A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterBC.Value);
                     break;
-                case 0x0B: break;
+                case 0x0B: DecrementRegister16Bit(RegisterBC);
+                    break;
                 case 0x0C: IncrementRegister8Bit(ref RegisterBC.Low);
                     break;
                 case 0x0D: DecrementRegister8Bit(ref RegisterBC.Low);
@@ -96,7 +98,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x12: LoadValueToMemory8Bit(RegisterDE.Value, RegisterAF.High);
                     break;
-                case 0x13: break;
+                case 0x13: IncrementRegister16Bit(RegisterDE);
+                    break;
                 case 0x14: IncrementRegister8Bit(ref RegisterDE.High);
                     break;
                 case 0x15: DecrementRegister8Bit(ref RegisterDE.High);
@@ -108,7 +111,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x1A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterDE.Value);
                     break;
-                case 0x1B: break;
+                case 0x1B: DecrementRegister16Bit(RegisterDE);
+                    break;
                 case 0x1C: IncrementRegister8Bit(ref RegisterDE.Low);
                     break;
                 case 0x1D: DecrementRegister8Bit(ref RegisterDE.Low);
@@ -120,7 +124,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x22: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High); RegisterHL.Value++;
                     break;
-                case 0x23: break;
+                case 0x23: IncrementRegister16Bit(RegisterHL);
+                    break;
                 case 0x24: IncrementRegister8Bit(ref RegisterHL.High);
                     break;
                 case 0x25: DecrementRegister8Bit(ref RegisterHL.High);
@@ -132,7 +137,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x2A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterHL.Value); RegisterHL.Value++;
                     break;
-                case 0x2B: break;
+                case 0x2B: DecrementRegister16Bit(RegisterHL);
+                    break;
                 case 0x2C: IncrementRegister8Bit(ref RegisterHL.Low);
                     break;
                 case 0x2D: DecrementRegister8Bit(ref RegisterHL.Low);
@@ -144,7 +150,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x32: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High); RegisterHL.Value--;
                     break;
-                case 0x33: break;
+                case 0x33: IncrementRegister16Bit(StackPointer);
+                    break;
                 case 0x34: IncrementMemory(RegisterHL.Value);
                     break;
                 case 0x35: DecrementMemory(RegisterHL.Value);
@@ -156,7 +163,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x3A: LoadMemoryToRegister8Bit(ref RegisterAF.High, RegisterHL.Value); RegisterHL.Value--;
                     break;
-                case 0x3B: break;
+                case 0x3B: DecrementRegister16Bit(StackPointer);
+                    break;
                 case 0x3C: IncrementRegister8Bit(ref RegisterAF.High);
                     break;
                 case 0x3D: DecrementRegister8Bit(ref RegisterAF.High);
@@ -465,7 +473,8 @@ namespace SharpBoy.Core
                 case 0xE6: AndWithRegisterA(ReadNextValue());
                     break;
                 case 0xE7: break;
-                case 0xE8: break;
+                case 0xE8: AddValueToStackPointer();
+                    break;
                 case 0xE9: break;
                 case 0xEA: LoadValueToMemory8Bit(ReadNextTwoValues(), RegisterAF.High);
                     break;
@@ -552,14 +561,22 @@ namespace SharpBoy.Core
                 case 0xCB2D: break;
                 case 0xCB2E: break;
                 case 0xCB2F: break;
-                case 0xCB30: break;
-                case 0xCB31: break;
-                case 0xCB32: break;
-                case 0xCB33: break;
-                case 0xCB34: break;
-                case 0xCB35: break;
-                case 0xCB36: break;
-                case 0xCB37: break;
+                case 0xCB30: SwapNibbles(RegisterBC.High);
+                    break;
+                case 0xCB31: SwapNibbles(RegisterBC.Low);
+                    break;
+                case 0xCB32: SwapNibbles(RegisterDE.High);
+                    break;
+                case 0xCB33: SwapNibbles(RegisterDE.Low);
+                    break;
+                case 0xCB34: SwapNibbles(RegisterHL.High);
+                    break;
+                case 0xCB35: SwapNibbles(RegisterHL.Low);
+                    break;
+                case 0xCB36: SwapNibbles(RegisterHL.Value);
+                    break;
+                case 0xCB37: SwapNibbles(RegisterAF.High);
+                    break;
                 case 0xCB38: break;
                 case 0xCB39: break;
                 case 0xCB3A: break;
@@ -796,271 +813,7 @@ namespace SharpBoy.Core
             }
 
             return mbc;
-        }
-
-        private void LoadValueToRegister8Bit(ref byte register)
-        {
-            register = ReadNextValue();
-        }
-
-        private void LoadRegisterToRegister8Bit(ref byte toRegister, byte fromRegister)
-        {
-            toRegister = fromRegister;
-        }
-
-        private void LoadMemoryToRegister8Bit(ref byte toRegister, ushort address)
-        {
-            toRegister = Memory[address];
-        }
-
-        private void LoadValueToMemory8Bit(ushort address, byte value)
-        {
-            Memory[address] = value;
-        }
-
-        private void LoadValueToRegister16Bit(Register register)
-        {
-            register.Value = ReadNextTwoValues();
-        }
-
-        private void LoadRegisterToRegister16Bit(Register toRegister, Register fromRegister)
-        {
-            toRegister.Value = fromRegister.Value;
-        }
-
-        private void LoadMemoryToRegister16Bit(Register toRegister, ushort address)
-        {
-            toRegister.Value = Memory[address];
-        }
-
-        // TODO: Verify correct endianess is used
-        private void LoadRegisterToMemory(Register register)
-        {
-            ushort address = ReadNextTwoValues();
-            Memory[address] = register.Low;
-            Memory[address + 1] = register.High;
-        }
-
-        // Reminder: Stack pointer starts in high memory and moves its way down
-        private void PushRegisterOntoStack(Register register)
-        {
-            Memory[StackPointer.Value--] = register.High;
-            Memory[StackPointer.Value--] = register.Low;
-        }
-
-        private void PopValuesIntoRegister(Register register)
-        {
-            register.Low = Memory[StackPointer.Value++];
-            register.High = Memory[StackPointer.Value++];
-        }
-
-        private void AddValueToRegisterA(byte value, bool addCarryFlag = false)
-        {
-            byte addend = value;
-            if (addCarryFlag && IsFlagSet(FlagC))
-                addend++;   // It's okay for this to overflow to 0
-            int result = RegisterAF.High + addend;
-            ResetAllFlags();
-
-            if (result == 0)
-                SetFlag(FlagZ);
-            
-            ResetFlag(FlagN);
-
-            int halfCarryResult = (RegisterAF.High & 0x0F) + (addend & 0x0F);
-            if (halfCarryResult > 0x0F)
-                SetFlag(FlagH);
-
-            if (result > 0xFF)
-                SetFlag(FlagC);
-
-            RegisterAF.High = (byte)result;
-        }
-
-        private void SubtractValueFromRegisterA(byte value, bool subCarryFlag = false)
-        {
-            byte subtrahend = value;
-            if (subCarryFlag && IsFlagSet(FlagC))
-                subtrahend++;   // It's okay for this to overflow to 0
-            int result = RegisterAF.High - subtrahend;
-            ResetAllFlags();
-            
-            if (result == 0)
-                SetFlag(FlagZ);
-            
-            SetFlag(FlagN);
-            
-            int halfCarryResult = (RegisterAF.High & 0x0F) - (subtrahend & 0x0F);
-            if (halfCarryResult < 0)
-                SetFlag(FlagH);
-           
-            if (result < 0)
-                SetFlag(FlagC);
-
-            RegisterAF.High = (byte)result;
-        }
-
-        private void AndWithRegisterA(byte value)
-        {
-            RegisterAF.High &= value;
-            ResetAllFlags();
-            
-            if (RegisterAF.High == 0)
-                SetFlag(FlagZ);
-            
-            SetFlag(FlagH);
-        }
-
-        private void OrWithRegisterA(byte value)
-        {
-            RegisterAF.High |= value;
-            ResetAllFlags();
-
-            if (RegisterAF.High == 0)
-                SetFlag(FlagZ);
-        }
-
-        private void XorWithRegisterA(byte value)
-        {
-            RegisterAF.High ^= value;
-            ResetAllFlags();
-
-            if (RegisterAF.High == 0)
-                SetFlag(FlagZ);
-        }
-
-        private void CompareWithRegisterA(byte value)
-        {
-            int result = RegisterAF.High - value;
-            ResetAllFlags();
-
-            if (result == 0)
-                SetFlag(FlagZ);
-
-            SetFlag(FlagN);
-
-            int halfCarryResult = (RegisterAF.High & 0x0F) - (value & 0x0F);
-            if (halfCarryResult < 0)
-                SetFlag(FlagH);
-
-            if (result < 0)
-                SetFlag(FlagC);
-        }
-
-        private void IncrementRegister8Bit(ref byte register)
-        {
-            register++;
-            HandleIncrementFlags(register);
         }        
-
-        private void IncrementMemory(ushort address)
-        {
-            Memory[address]++;
-            HandleIncrementFlags(Memory[address]);
-        }
-
-        private void DecrementRegister8Bit(ref byte register)
-        {
-            register--;
-            HandleDecrementFlags(register);
-        }
-
-        private void DecrementMemory(ushort address)
-        {
-            Memory[address]--;
-            HandleDecrementFlags(Memory[address]);
-        }
-
-        private void LoadStackPointerToRegisterHL()
-        {
-            byte value = ReadNextValue();
-            int result = StackPointer.Value + value;
-            RegisterHL.Value = (ushort)result;
-            ResetAllFlags();
-
-            // Set the carry flag if there was an overflow
-            if (result > 0xFFFF)
-                SetFlag(FlagC);
-
-            // Set the half carry flag if there was an overflow in the lower 4 bits
-            int halfCarryResult = (StackPointer.Value & 0x0F) + (value & 0x0F);
-            if (halfCarryResult > 0x0F)
-                SetFlag(FlagH);
-        }
-
-        private void HandleIncrementFlags(byte value)
-        {
-            if (value == 0)
-                SetFlag(FlagZ);
-            else
-                ResetFlag(FlagZ);
-
-            ResetFlag(FlagN);
-
-            // If we incremented from 0x0F to 0x10, then we carried from bit 3.
-            if ((value & 0x0F) == 0)
-                SetFlag(FlagH);
-            else
-                ResetFlag(FlagH);
-        }
-
-        private void HandleDecrementFlags(byte value)
-        {
-            if (value == 0)
-                SetFlag(FlagZ);
-            else
-                ResetFlag(FlagZ);
-
-            SetFlag(FlagN);
-
-            // If the lower nibble is 0x0F, then we decremented from 0x10 (lower nibble)
-            // and thus borrowed from bit 4.
-            if ((value & 0x0F) == 0x0F)
-                SetFlag(FlagH);
-            else
-                ResetFlag(FlagH);
-        }
-
-        private void AddValueToRegisterHL(Register register)
-        {
-            int result = RegisterHL.Value + register.Value;
-
-            ResetFlag(FlagN);
-
-            int halfCarryResult = (RegisterHL.Value & 0xFFF) + (register.Value & 0xFFF);
-            if (halfCarryResult > 0xFFF)
-                SetFlag(FlagH);
-            else
-                ResetFlag(FlagH);
-
-            if (result > 0xFFFF) 
-                SetFlag(FlagC);
-            else
-                ResetFlag(FlagC);
-
-            RegisterHL.Value = (ushort)result;
-        }
-
-        private void ResetAllFlags()
-        {
-            RegisterAF.Low = 0;
-        }
-
-        private void ResetFlag(byte flag)
-        {
-            // Bitwise operations like ~ are performed as an int, hence the cast
-            RegisterAF.Low &= (byte)~flag;
-        }
-
-        private void SetFlag(byte flag)
-        {
-            RegisterAF.Low |= flag;
-        }
-
-        private bool IsFlagSet(byte flag)
-        {
-            return (RegisterAF.Low & flag) == flag;
-        }
 
         // TODO: Re-evaluate this after core op codes have been implemented.
         // Maps the cycle count that each op code takes.
