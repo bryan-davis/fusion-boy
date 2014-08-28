@@ -23,6 +23,8 @@ namespace SharpBoy.Core
 
         public MemoryBankController Memory { get; private set; }
         public CartridgeInfo CartInfo { get; private set; }
+        public bool Halted;
+        public bool Stopped;
 
         public CPU()
         {
@@ -31,7 +33,9 @@ namespace SharpBoy.Core
             RegisterDE = new Register();
             RegisterHL = new Register();
             StackPointer = new Register();
-            ProgramCounter = 0;            
+            ProgramCounter = 0;
+            Halted = false;
+            Stopped = false;
         }
 
         public void LoadRom(string romPath)
@@ -67,7 +71,8 @@ namespace SharpBoy.Core
         {
             switch (opCode)
             {
-                case 0x00: break;
+                case 0x00: // Do nothing
+                    break;
                 case 0x01: LoadValueToRegister16Bit(RegisterBC);
                     break;
                 case 0x02: LoadValueToMemory8Bit(RegisterBC.Value, RegisterAF.High);
@@ -93,6 +98,8 @@ namespace SharpBoy.Core
                 case 0x0D: DecrementRegister8Bit(ref RegisterBC.Low);
                     break;
                 case 0x0E: LoadValueToRegister8Bit(ref RegisterBC.Low); 
+                    break;
+                case 0x10: Stopped = true;
                     break;
                 case 0x11: LoadValueToRegister16Bit(RegisterDE);
                     break;
@@ -132,6 +139,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x26: LoadValueToRegister8Bit(ref RegisterHL.High); 
                     break;
+                case 0x27: DecimalAdjustRegisterA();
+                    break;
                 case 0x28: break;
                 case 0x29: AddValueToRegisterHL(RegisterHL);
                     break;
@@ -144,6 +153,8 @@ namespace SharpBoy.Core
                 case 0x2D: DecrementRegister8Bit(ref RegisterHL.Low);
                     break;
                 case 0x2E: LoadValueToRegister8Bit(ref RegisterHL.Low); 
+                    break;
+                case 0x2F: ComplementRegisterA();
                     break;
                 case 0x30: break;
                 case 0x31: LoadValueToRegister16Bit(StackPointer);
@@ -158,6 +169,8 @@ namespace SharpBoy.Core
                     break;
                 case 0x36: LoadValueToMemory8Bit(RegisterHL.Value, ReadNextValue());
                     break;
+                case 0x37: SetCarryFlag();
+                    break;
                 case 0x38: break;
                 case 0x39: AddValueToRegisterHL(StackPointer);
                     break;
@@ -170,6 +183,8 @@ namespace SharpBoy.Core
                 case 0x3D: DecrementRegister8Bit(ref RegisterAF.High);
                     break;
                 case 0x3E: LoadValueToRegister8Bit(ref RegisterAF.High);
+                    break;
+                case 0x3F: ComplementCarryFlag();
                     break;
                 case 0x40: LoadRegisterToRegister8Bit(ref RegisterBC.High, RegisterBC.High);
                     break;
@@ -278,6 +293,8 @@ namespace SharpBoy.Core
                 case 0x74: LoadValueToMemory8Bit(RegisterHL.Value, RegisterHL.High);
                     break;                             
                 case 0x75: LoadValueToMemory8Bit(RegisterHL.Value, RegisterHL.Low);
+                    break;
+                case 0x76: Halted = true;
                     break;
                 case 0x77: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High);
                     break;
@@ -487,6 +504,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xF2: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + RegisterBC.Low));
                     break;
+                case 0xF3: break;
                 case 0xF5: PushRegisterOntoStack(RegisterAF);
                     break;
                 case 0xF6: OrWithRegisterA(ReadNextValue());
@@ -498,9 +516,10 @@ namespace SharpBoy.Core
                     break;
                 case 0xFA: LoadMemoryToRegister8Bit(ref RegisterAF.High, ReadNextTwoValues());
                     break;
+                case 0xFB: break;
                 case 0xFE: CompareWithRegisterA(ReadNextValue());
                     break;
-                case 0xFF: break;
+                case 0xFF: break;                
             }
         }
 

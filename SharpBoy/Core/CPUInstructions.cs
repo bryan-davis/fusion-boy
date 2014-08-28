@@ -304,9 +304,62 @@
                 SetFlag(FlagZ);
         }
 
+        // This link contains the best explanation of this instruction that I could find.
+        // http://www.worldofspectrum.org/faq/reference/z80reference.htm#DAA
         private void DecimalAdjustRegisterA()
         {
-            // TODO: Implement this
+            byte value = RegisterAF.High;
+            // Correction will result in either 0x00, 0x06, 0x60, or 0x66
+            byte correction = 0x00;
+
+            if (value > 0x99 || IsFlagSet(FlagC))
+            {
+                correction |= (0x06 << 4);
+                SetFlag(FlagC);
+            }
+            else           
+                ResetFlag(FlagC);            
+
+            if ((value & 0x0F) > 0x09 || IsFlagSet(FlagH))            
+                correction |= 0x06;
+
+            if (IsFlagSet(FlagN))
+                RegisterAF.High -= correction;
+            else
+                RegisterAF.High += correction;
+
+            if (RegisterAF.High == 0)
+                SetFlag(FlagZ);
+            else
+                ResetFlag(FlagZ);
+
+            // Per pandocs and the Game Boy CPU manual, flag H is reset,
+            // which differs from typical Z80 operation according to the link above.
+            ResetFlag(FlagH);
+        }
+
+        private void ComplementRegisterA()
+        {
+            RegisterAF.High ^= 0xFF;
+            SetFlag(FlagN);
+            SetFlag(FlagH);
+        }
+
+        private void SetCarryFlag()
+        {
+            ResetFlag(FlagN);
+            ResetFlag(FlagH);
+            SetFlag(FlagC);
+        }
+
+        private void ComplementCarryFlag()
+        {
+            ResetFlag(FlagN);
+            ResetFlag(FlagH);
+            if (IsFlagSet(FlagC))
+                ResetFlag(FlagC);
+            else
+                SetFlag(FlagC);
         }
 
         private void ResetAllFlags()
