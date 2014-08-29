@@ -362,6 +362,146 @@
                 SetFlag(FlagC);
         }
 
+        // RLCA
+        private void RotateALeftNoCarry()
+        {
+            bool highBitSet = (RegisterAF.High & 0x80) == 0x80;
+            RegisterAF.High = (byte)((RegisterAF.High << 1) | (RegisterAF.High >> 7));
+            ResetAllFlags();
+            // If bit 7 was set before the rotate.
+            if (highBitSet)
+                SetFlag(FlagC);
+        }
+
+        // RLA
+        private void RotateALeftThroughCarry()
+        {
+            bool highBitSet = (RegisterAF.High & 0x80) == 0x80;
+            RegisterAF.High <<= 1;
+            
+            if (IsFlagSet(FlagC))
+                RegisterAF.High |= 0x01;
+
+            ResetAllFlags();
+            if (highBitSet)
+                SetFlag(FlagC);
+        }
+
+        // RRCA
+        private void RotateARightNoCarry()
+        {
+            bool lowBitSet = (RegisterAF.High & 0x01) == 0x01;
+            RegisterAF.High = (byte)((RegisterAF.High << 7) | (RegisterAF.High) >> 1);
+            ResetAllFlags();
+            // If bit 0 was set before the rotate.
+            if (lowBitSet)
+                SetFlag(FlagC);
+        }
+
+        // RRA
+        private void RotateARightThroughCarry()
+        {
+            bool lowBitSet = (RegisterAF.High & 0x01) == 0x01;
+            RegisterAF.High >>= 1;
+
+            if (IsFlagSet(FlagC))
+                RegisterAF.High |= 0x80;
+
+            ResetAllFlags();
+            if (lowBitSet)
+                SetFlag(FlagC);
+        }
+
+        // RLC
+        private void RotateLeftNoCarry(ref byte register)
+        {
+            bool highBitSet = (register & 0x80) == 0x80;
+            register = (byte)((register << 1) | (register >> 7));
+
+            HandleRotateFlags(register, highBitSet);
+        }
+
+        // RLC
+        private void RotateLeftNoCarry(ushort address)
+        {
+            byte value = Memory[address];
+            RotateLeftNoCarry(ref value);
+            Memory[address] = value;
+        }        
+
+        // RL
+        private void RotateLeftThroughCarry(ref byte register)
+        {
+            bool highBitSet = (register & 0x80) == 0x80;
+            
+            register <<= 1;
+            if (IsFlagSet(FlagC))
+                register |= 0x01;
+
+            HandleRotateFlags(register, highBitSet);
+        }
+
+        // RL
+        private void RotateLeftThroughCarry(ushort address)
+        {
+            byte value = Memory[address];
+            RotateLeftThroughCarry(ref value);
+            Memory[address] = value;
+        }
+
+        // RRC
+        private void RotateRightNoCarry(ref byte register)
+        {
+            bool lowBitSet = (register & 0x01) == 0x01;
+            register = (byte)((register << 7) | (register) >> 1);
+
+            HandleRotateFlags(register, lowBitSet);
+        }
+
+        // RRC
+        private void RotateRightNoCarry(ushort address)
+        {
+            byte value = Memory[address];
+            RotateRightNoCarry(ref value);
+            Memory[address] = value;
+        }
+
+        // RR
+        private void RotateRightThroughCarry(ref byte register)
+        {
+            bool lowBitSet = (register & 0x01) == 0x01;
+            register >>= 1;
+
+            if (IsFlagSet(FlagC))
+                register |= 0x80;
+
+            HandleRotateFlags(register, lowBitSet);
+        }
+
+        // RR
+        private void RotateRightThroughCarry(ushort address)
+        {
+            byte value = Memory[address];
+            RotateRightThroughCarry(ref value);
+            Memory[address] = value;
+        }
+
+        // Support for all registers except A
+        private void HandleRotateFlags(byte value, bool bitSet)
+        {
+            ResetAllFlags();
+
+            if (value == 0)
+            {
+                SetFlag(FlagZ);
+                return; // If the register is now 0, obviously the bit wasn't set.
+            }
+
+            // If bit was set before the rotate.
+            if (bitSet)
+                SetFlag(FlagC);
+        }
+
         private void ResetAllFlags()
         {
             RegisterAF.Low = 0;
