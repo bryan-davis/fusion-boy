@@ -418,7 +418,7 @@
             bool highBitSet = (register & 0x80) == 0x80;
             register = (byte)((register << 1) | (register >> 7));
 
-            HandleRotateFlags(register, highBitSet);
+            HandleShiftFlags(register, highBitSet);
         }
 
         // RLC
@@ -438,7 +438,7 @@
             if (IsFlagSet(FlagC))
                 register |= 0x01;
 
-            HandleRotateFlags(register, highBitSet);
+            HandleShiftFlags(register, highBitSet);
         }
 
         // RL
@@ -455,7 +455,7 @@
             bool lowBitSet = (register & 0x01) == 0x01;
             register = (byte)((register << 7) | (register) >> 1);
 
-            HandleRotateFlags(register, lowBitSet);
+            HandleShiftFlags(register, lowBitSet);
         }
 
         // RRC
@@ -475,7 +475,7 @@
             if (IsFlagSet(FlagC))
                 register |= 0x80;
 
-            HandleRotateFlags(register, lowBitSet);
+            HandleShiftFlags(register, lowBitSet);
         }
 
         // RR
@@ -486,20 +486,101 @@
             Memory[address] = value;
         }
 
-        // Support for all registers except A
-        private void HandleRotateFlags(byte value, bool bitSet)
+        private void LogicalShiftLeft(ref byte register)
+        {
+            bool highBitSet = (register & 0x80) == 0x80;
+            register <<= 1;
+
+            HandleShiftFlags(register, highBitSet);
+        }
+
+        private void LogicalShiftLeft(ushort address)
+        {
+            byte value = Memory[address];
+            LogicalShiftLeft(ref value);
+            Memory[address] = value;
+        }
+
+        private void ArithmeticShiftRight(ref byte register)
+        {
+            bool highBitSet = (register & 0x80) == 0x80;
+            bool lowBitSet = (register & 0x01) == 0x01;
+            register >>= 1;
+            // Keep the original MSB value
+            if (highBitSet)
+                register |= 0x80;
+
+            HandleShiftFlags(register, lowBitSet);
+        }
+
+        private void ArithmeticShiftRight(ushort address)
+        {
+            byte value = Memory[address];
+            ArithmeticShiftRight(ref value);
+            Memory[address] = value;
+        }
+
+        private void LogicalShiftRight(ref byte register)
+        {
+            bool lowBitSet = (register & 0x01) == 0x01;
+            register >>= 1;
+
+            HandleShiftFlags(register, lowBitSet);
+        }
+
+        private void LogicalShiftRight(ushort address)
+        {
+            byte value = Memory[address];
+            LogicalShiftRight(ref value);
+            Memory[address] = value;
+        }
+
+        // Support for all registers except A when rotating/circular shifting.
+        // Support for all registers when shifting.
+        private void HandleShiftFlags(byte value, bool bitSet)
         {
             ResetAllFlags();
 
             if (value == 0)
-            {
                 SetFlag(FlagZ);
-                return; // If the register is now 0, obviously the bit wasn't set.
-            }
 
-            // If bit was set before the rotate.
+            // If bit was set before the rotate/shift.
             if (bitSet)
                 SetFlag(FlagC);
+        }
+
+        // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
+        private void TestBit(byte bit, byte value)
+        {
+            bool isSet = (value & (1 << bit)) == (1 << bit);
+            
+            if (isSet)
+                ResetFlag(FlagZ);
+            else
+                SetFlag(FlagZ);
+
+            ResetFlag(FlagN);
+            SetFlag(FlagH);
+        }
+
+        private void SetBit(byte bit, ref byte value)
+        {
+            value |= (byte)(1 << bit);
+        }
+
+        private void SetBit(byte bit, ushort address)
+        {
+            Memory[address] |= (byte)(1 << bit);
+        }
+
+        private void ResetBit(byte bit, ref byte value)
+        {
+            value &= (byte)~(1 << bit);
+        }
+
+        private void ResetBit(byte bit, ushort address)
+        {
+            Memory[address] &= (byte)~(1 << bit);
         }
 
         private void ResetAllFlags()
