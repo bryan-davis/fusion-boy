@@ -49,11 +49,12 @@
             Memory[address + 1] = register.High;
         }
 
-        // Reminder: Stack pointer starts in high memory and moves its way down
-        private void PushRegisterOntoStack(Register register)
+        // Reminder: Stack pointer starts in high memory and moves its way down.
+        private void PushAddressOntoStack(ushort address)
         {
-            Memory[StackPointer.Value--] = register.High;
-            Memory[StackPointer.Value--] = register.Low;
+            // High byte first, then low byte.
+            Memory[StackPointer.Value--] = (byte)(address >> 8);
+            Memory[StackPointer.Value--] = (byte)(address & 0x00FF);
         }
 
         private void PopValuesIntoRegister(Register register)
@@ -362,6 +363,16 @@
                 SetFlag(FlagC);
         }
 
+        private void EnableInterrupts()
+        {
+            // TODO: implement this.
+        }
+
+        private void DisableInterrupts()
+        {
+            // TODO: implement this.
+        }
+
         // RLCA
         private void RotateALeftNoCarry()
         {
@@ -581,6 +592,67 @@
         private void ResetBit(byte bit, ushort address)
         {
             Memory[address] &= (byte)~(1 << bit);
+        }
+
+        private void Jump(ushort address)
+        {            
+            ProgramCounter = address;
+        }
+
+        private void Jump(sbyte offset)
+        {
+            ProgramCounter = (ushort)(ProgramCounter + offset);
+        }
+
+        private void ConditionallyJump(bool condition, ushort address)
+        {
+            if (condition)
+                ProgramCounter = address;
+        }
+
+        private void ConditionallyJump(bool condition, sbyte offset)
+        {
+            if (condition)
+                ProgramCounter = (ushort)(ProgramCounter + offset);
+        }
+
+        private void Call(ushort address)
+        {
+            // MSByte first.
+            PushAddressOntoStack(ProgramCounter);
+            ProgramCounter = address;
+        }
+
+        private void ConditionallyCall(bool condition, ushort address)
+        {
+            if (condition)
+                Call(address);
+        }
+
+        private void Restart(byte offset)
+        {
+            PushAddressOntoStack(ProgramCounter);
+            ushort address = (ushort)(0x0000 + offset);
+            ProgramCounter = address;
+        }
+
+        private void Return()
+        {
+            byte low = Memory[StackPointer.Value++];            
+            byte high = Memory[StackPointer.Value++];
+            ProgramCounter = (ushort)((high << 8) | low);
+        }
+
+        private void ConditionallyReturn(bool condition)
+        {
+            if (condition)
+                Return();
+        }
+
+        private void ReturnAndEnableInterrupts()
+        {
+            Return();
+            // TODO: Enable interrupts
         }
 
         private void ResetAllFlags()
