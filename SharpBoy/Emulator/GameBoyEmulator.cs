@@ -19,6 +19,7 @@ namespace SharpBoy.Emulator
         private string saveStateDirectory;
         private string currentGame;
         private CPU cpu;
+        private int frameRate;
 
         public GameBoyEmulator()
         {
@@ -34,6 +35,16 @@ namespace SharpBoy.Emulator
             {
                 currentGame = value;
                 RaisePropertyChanged("CurrentGame");
+            }
+        }
+
+        public int FrameRate
+        {
+            get { return frameRate; }
+            private set
+            {
+                frameRate = value;
+                RaisePropertyChanged("FrameRate");
             }
         }
 
@@ -134,7 +145,7 @@ namespace SharpBoy.Emulator
             frameCount++;
             if (frameRateTimer.ElapsedMilliseconds >= 1000)
             {
-                Debug.WriteLine("{0} FPS", frameCount);
+                FrameRate = frameCount;
                 frameCount = 0;
                 frameRateTimer.Restart();
             }
