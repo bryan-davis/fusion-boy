@@ -12,6 +12,7 @@ namespace SharpBoy.Emulator
         string CurrentGame { get; }
         int RenderHeight { get; }
         int RenderWidth { get; }
+        int FrameRate { get; }
         bool Stop { get; set; }
 
         void Run();

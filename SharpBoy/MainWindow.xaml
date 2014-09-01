@@ -15,9 +15,16 @@
             </MenuItem>
         </Menu>
         <StatusBar DockPanel.Dock="Bottom">
-            <TextBlock Text="Now Playing: ">
-                <TextBlock Text="{Binding Path=CurrentGame}" />
-            </TextBlock>
+            <StatusBarItem HorizontalContentAlignment="Left">
+                <TextBlock Text="Now Playing: ">
+                    <TextBlock Text="{Binding Path=CurrentGame}" />
+                </TextBlock>                
+            </StatusBarItem>
+            <StatusBarItem HorizontalContentAlignment="Right">
+                <TextBlock Text="FPS: " TextAlignment="Right">
+                    <TextBlock Text="{Binding Path=FrameRate}" />
+                </TextBlock>                
+            </StatusBarItem>
         </StatusBar>
         <Image Name="renderedImage" RenderOptions.BitmapScalingMode="NearestNeighbor"
                RenderOptions.EdgeMode="Aliased" Stretch="Uniform"
