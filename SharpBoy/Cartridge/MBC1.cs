@@ -7,7 +7,7 @@ namespace SharpBoy.Cartridge
         public MBC1(Stream fileStream) : base(fileStream)
         {
             // The first 16K (MBC0) is always read into the beginning of memory
-            Array.Copy(cartridge, Memory, 0x4000);
+            Array.Copy(cartridge, data, 0x4000);
         }
 
         public override byte this[int address]
@@ -22,29 +22,12 @@ namespace SharpBoy.Cartridge
                 }
                 else
                 {
-                    return Memory[address];
+                    return base[address];
                 }
             }
             set
             {
-                if (IsROM(address))
-                {
-                    return;
-                }
-                else if (IsUnsableRegion(address))
-                {
-                    return;
-                }
-                else if (IsEchoRegion(address))
-                {
-                    Memory[address] = value;
-                    // Writing to the echo region also writes to an offset of 0xC000 - 0xDDFF
-                    Memory[address - 0x2000] = value;
-                }
-                else
-                {
-                    Memory[address] = value;
-                }
+                base[address] = value;
             }
         }
     }
