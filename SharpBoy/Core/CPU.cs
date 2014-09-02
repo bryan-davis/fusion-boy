@@ -67,6 +67,11 @@ namespace SharpBoy.Core
             return values;
         }
 
+        public void HandleTimers(int cycleCount)
+        {
+
+        }
+
         public void ExecuteOpCode(byte opCode)
         {
             switch (opCode)

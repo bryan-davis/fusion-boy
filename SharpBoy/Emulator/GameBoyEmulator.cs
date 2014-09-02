@@ -113,31 +113,41 @@ namespace SharpBoy.Emulator
 
             while (currentCycles < cyclesPerFrame)
             {
-                byte opCode = cpu.ReadNextValue();
-                int cycleLookup;
-                if (opCode != 0xCB)
-                {
-                    cycleLookup = opCode;
-                    cpu.ExecuteOpCode(opCode);
-                }
-                else
-                {
-                    ushort extendedOpCode = (ushort)(opCode << 8);
-                    extendedOpCode |= cpu.ReadNextValue();
-                    cpu.ExecuteExtendedOpCode(extendedOpCode);
-                    cycleLookup = extendedOpCode;
-                }
+                int opCodeLookup = ExecuteOpCode();
 
                 int cycles;
-                if (cpu.CycleMap.TryGetValue(cycleLookup, out cycles))
+                if (cpu.CycleMap.TryGetValue(opCodeLookup, out cycles))
                 {
                     currentCycles += cycles;
                 }
                 else
                 {
-                    missingCodes.Add(cycleLookup);
+                    missingCodes.Add(opCodeLookup);
                 }
+
+                cpu.HandleTimers(cycles);
             }            
+        }
+
+        private int ExecuteOpCode()
+        {
+            byte opCode = cpu.ReadNextValue();
+            int opCodeLookup;
+
+            if (opCode != 0xCB)
+            {
+                opCodeLookup = opCode;
+                cpu.ExecuteOpCode(opCode);
+            }
+            else
+            {
+                ushort extendedOpCode = (ushort)(opCode << 8);
+                extendedOpCode |= cpu.ReadNextValue();
+                cpu.ExecuteExtendedOpCode(extendedOpCode);
+                opCodeLookup = extendedOpCode;
+            }
+
+            return opCodeLookup;
         }
 
         private void Render()
