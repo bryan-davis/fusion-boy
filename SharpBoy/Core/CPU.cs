@@ -1,6 +1,7 @@
 ﻿using SharpBoy.Cartridge;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 
 namespace SharpBoy.Core
@@ -23,8 +24,14 @@ namespace SharpBoy.Core
 
         public MemoryBankController Memory { get; private set; }
         public CartridgeInfo CartInfo { get; private set; }
-        public bool Halted;
-        public bool Stopped;
+        public bool Halted { get; private set; }
+        public bool Stopped { get; private set; }
+        
+        public bool TimerEnabled { get; private set; }
+        public int TimerCycleIncrement { get; private set; }
+        public int TimerCycles { get; private set; }
+        public int DividerCycleIncrement { get; private set; }
+        public int DividerCycles { get; private set; }
 
         public CPU()
         {
@@ -36,6 +43,9 @@ namespace SharpBoy.Core
             ProgramCounter = 0;
             Halted = false;
             Stopped = false;
+
+            int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
+            DividerCycleIncrement = cyclesPerSecond / 16384;
         }
 
         public void LoadRom(string romPath)
@@ -48,6 +58,7 @@ namespace SharpBoy.Core
                 fileStream.Seek(0, SeekOrigin.Begin);
                 Memory = CreateMBC(CartInfo.CartType, fileStream);
             }
+            Memory.UpdateTimerHandler += HandleTimerUpdate;
             Reset();
         }
 
@@ -67,9 +78,75 @@ namespace SharpBoy.Core
             return values;
         }
 
+        /*
+         * http://problemkaputt.de/pandocs.htm#timeranddividerregisters
+         * TimerCycleIncrement is the number of cycles that need to have happened
+         * for the TIMA timer counter to increment by one. TimerCycles keeps track
+         * of the number of cycles that have occured between each increment, resetting
+         * to 0 after an increment has occurred.
+         */
         public void HandleTimers(int cycleCount)
         {
+            HandleDivider(cycleCount);
 
+            if (TimerEnabled)
+            {
+                TimerCycles += cycleCount;
+                if (TimerCycles >= TimerCycleIncrement)
+                {
+                    int result = Memory[0xFF05] + 1;
+                    if (result > 255)
+                    {
+                        Memory[0xFF05] = Memory[0xFF06];
+                        // TODO: Request interrupt.
+                    }
+                    else
+                    {
+                        Memory[0xFF05] = (byte)result;
+                    }                    
+                    TimerCycles = 0;
+                } 
+            }
+        }
+
+        /*
+         * Bit 2    - Timer Stop  (0=Stop, 1=Start)
+         * Bits 1-0 - Input Clock Select
+         * 00:   4096 Hz
+         * 01: 262144 Hz
+         * 10:  65536 Hz
+         * 11:  16384 Hz
+         */
+        public void HandleTimerUpdate(byte value)
+        {
+            Debug.WriteLine("Timer handler triggered");
+            TimerEnabled = (value & (1 << 2)) == (1 << 2);
+
+            int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
+            byte refreshSetting = (byte)(value & 3);
+            switch (refreshSetting)
+            {
+                case 0: TimerCycleIncrement = cyclesPerSecond / 4096;
+                    break;
+                case 1: TimerCycleIncrement = cyclesPerSecond / 262144; 
+                    break;
+                case 2: TimerCycleIncrement = cyclesPerSecond / 65536; 
+                    break;
+                case 3: TimerCycleIncrement = cyclesPerSecond / 16384; 
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void HandleDivider(int cycleCount)
+        {
+            DividerCycles += cycleCount;
+            if (DividerCycles >= DividerCycleIncrement)
+            {
+                Memory.IncrementDividerRegister();
+                DividerCycles = 0;
+            } 
         }
 
         public void ExecuteOpCode(byte opCode)

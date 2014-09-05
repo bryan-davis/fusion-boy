@@ -5,9 +5,9 @@ namespace SharpBoy.Cartridge
 {
     public abstract class MemoryBankController
     {
-
         protected const int memorySize = 0x10000; // 65536 - 64K
         protected const int dividerAddress = 0xFF04;
+        protected const int timerControl = 0xFF07;
         protected byte[] data;
         protected byte[] cartridge;
         
@@ -16,6 +16,9 @@ namespace SharpBoy.Cartridge
         public byte CurrentRAMBank { get; set; }
         public bool InROMBankMode { get; set; }
         public bool ExternalRAMEnabled { get; set; }
+
+        public delegate void TimerUpdateEvent(byte value);
+        public event TimerUpdateEvent UpdateTimerHandler;
 
         protected MemoryBankController(Stream fileStream)
         {            
@@ -87,6 +90,11 @@ namespace SharpBoy.Cartridge
                 {
                     data[address] = 0;
                 }
+                else if (IsTimerControl(address) && UpdateTimerHandler != null)
+                {
+                    data[address] = value;
+                    UpdateTimerHandler(value);
+                }
                 else
                 {
                     data[address] = value;
@@ -129,6 +137,11 @@ namespace SharpBoy.Cartridge
         protected bool IsDividerRegister(int address)
         {
             return address == dividerAddress;
+        }
+
+        protected bool IsTimerControl(int address)
+        {
+            return address == timerControl;
         }
     }
 }
