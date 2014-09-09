@@ -26,7 +26,8 @@ namespace SharpBoy.Core
         public CartridgeInfo CartInfo { get; private set; }
         public bool Halted { get; private set; }
         public bool Stopped { get; private set; }
-        
+
+        public bool InterruptsEnabled { get; private set; }
         public bool TimerEnabled { get; private set; }
         public int TimerCycleIncrement { get; private set; }
         public int TimerCycles { get; private set; }
@@ -34,6 +35,10 @@ namespace SharpBoy.Core
         public int DividerCycles { get; private set; }
 
         public CPU()
+        {
+        }
+
+        private void InitializeCPU()
         {
             RegisterAF = new Register();
             RegisterBC = new Register();
@@ -43,6 +48,11 @@ namespace SharpBoy.Core
             ProgramCounter = 0;
             Halted = false;
             Stopped = false;
+            InterruptsEnabled = false;
+            TimerEnabled = false;
+            TimerCycleIncrement = 0;
+            TimerCycles = 0;
+            DividerCycles = 0;
 
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
             DividerCycleIncrement = cyclesPerSecond / 16384;
@@ -59,6 +69,7 @@ namespace SharpBoy.Core
                 Memory = CreateMBC(CartInfo.CartType, fileStream);
             }
             Memory.UpdateTimerHandler += HandleTimerUpdate;
+            InitializeCPU();
             Reset();
         }
 
@@ -623,7 +634,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xF2: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + RegisterBC.Low));
                     break;
-                case 0xF3: DisableInterrupts();
+                case 0xF3: InterruptsEnabled = false;
                     break;
                 case 0xF5: PushAddressOntoStack(RegisterAF.Value);
                     break;
@@ -637,7 +648,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xFA: LoadMemoryToRegister8Bit(ref RegisterAF.High, ReadNextTwoValues());
                     break;
-                case 0xFB: EnableInterrupts();
+                case 0xFB: InterruptsEnabled = true;
                     break;
                 case 0xFE: CompareWithRegisterA(ReadNextValue());
                     break;
