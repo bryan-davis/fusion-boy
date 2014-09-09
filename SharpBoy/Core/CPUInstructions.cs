@@ -363,16 +363,6 @@
                 SetFlag(FlagC);
         }
 
-        private void EnableInterrupts()
-        {
-            // TODO: implement this.
-        }
-
-        private void DisableInterrupts()
-        {
-            // TODO: implement this.
-        }
-
         // RLCA
         private void RotateALeftNoCarry()
         {
@@ -652,7 +642,7 @@
         private void ReturnAndEnableInterrupts()
         {
             Return();
-            // TODO: Enable interrupts
+            InterruptsEnabled = true;
         }
 
         private void ResetAllFlags()
