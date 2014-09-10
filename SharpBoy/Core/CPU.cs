@@ -27,6 +27,7 @@ namespace SharpBoy.Core
         public bool Halted { get; private set; }
         public bool Stopped { get; private set; }
 
+        public Interrupts Interrupts { get; private set; }
         public bool InterruptsEnabled { get; private set; }
         public bool TimerEnabled { get; private set; }
         public int TimerCycleIncrement { get; private set; }
@@ -36,26 +37,6 @@ namespace SharpBoy.Core
 
         public CPU()
         {
-        }
-
-        private void InitializeCPU()
-        {
-            RegisterAF = new Register();
-            RegisterBC = new Register();
-            RegisterDE = new Register();
-            RegisterHL = new Register();
-            StackPointer = new Register();
-            ProgramCounter = 0;
-            Halted = false;
-            Stopped = false;
-            InterruptsEnabled = false;
-            TimerEnabled = false;
-            TimerCycleIncrement = 0;
-            TimerCycles = 0;
-            DividerCycles = 0;
-
-            int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
-            DividerCycleIncrement = cyclesPerSecond / 16384;
         }
 
         public void LoadRom(string romPath)
@@ -69,7 +50,6 @@ namespace SharpBoy.Core
                 Memory = CreateMBC(CartInfo.CartType, fileStream);
             }
             Memory.UpdateTimerHandler += HandleTimerUpdate;
-            InitializeCPU();
             Reset();
         }
 
@@ -1181,6 +1161,24 @@ namespace SharpBoy.Core
         // http://problemkaputt.de/pandocs.htm#powerupsequence
         private void Reset()
         {
+            RegisterAF = new Register();
+            RegisterBC = new Register();
+            RegisterDE = new Register();
+            RegisterHL = new Register();
+            StackPointer = new Register();
+            ProgramCounter = 0;
+            Halted = false;
+            Stopped = false;
+            Interrupts = new Interrupts();
+            InterruptsEnabled = false;
+            TimerEnabled = false;
+            TimerCycleIncrement = 0;
+            TimerCycles = 0;
+            DividerCycles = 0;
+
+            int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
+            DividerCycleIncrement = cyclesPerSecond / 16384;
+
             RegisterAF.Value = 0x01B0;
             RegisterBC.Value = 0x0013;
             RegisterDE.Value = 0x00D8;
