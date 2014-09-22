@@ -552,16 +552,19 @@
 
         // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
         private void TestBit(byte bit, byte value)
-        {
-            bool isSet = (value & (1 << bit)) == (1 << bit);
-            
-            if (isSet)
+        {   
+            if (BitSet(bit, value))
                 ResetFlag(FlagZ);
             else
                 SetFlag(FlagZ);
 
             ResetFlag(FlagN);
             SetFlag(FlagH);
+        }
+
+        private bool BitSet(byte bit, byte value)
+        {
+            return (value & (1 << bit)) == (1 << bit);
         }
 
         private void SetBit(byte bit, ref byte value)

@@ -7,7 +7,6 @@ namespace SharpBoy.Cartridge
     {
         protected const int memorySize = 0x10000; // 65536 - 64K
         protected const int dividerAddress = 0xFF04;
-        protected const int timerControl = 0xFF07;
         protected byte[] data;
         protected byte[] cartridge;
         
@@ -17,8 +16,9 @@ namespace SharpBoy.Cartridge
         public bool InROMBankMode { get; set; }
         public bool ExternalRAMEnabled { get; set; }
 
-        public delegate void TimerUpdateEvent(byte value);
-        public event TimerUpdateEvent UpdateTimerHandler;
+        public event Action<byte> UpdateTimerHandler;
+        public event Action<byte> InterruptEnableHandler;
+        public event Action<byte> InterruptRequestHandler;
 
         protected MemoryBankController(Stream fileStream)
         {            
@@ -95,6 +95,16 @@ namespace SharpBoy.Cartridge
                     data[address] = value;
                     UpdateTimerHandler(value);
                 }
+                else if (IsInterruptRequest(address) && InterruptRequestHandler != null)
+                {
+                    data[address] = value;
+                    InterruptRequestHandler(value);
+                }
+                else if (IsInterruptEnable(address) && InterruptEnableHandler != null)
+                {
+                    data[address] = value;
+                    InterruptEnableHandler(value);
+                }
                 else
                 {
                     data[address] = value;
@@ -116,22 +126,22 @@ namespace SharpBoy.Cartridge
 
         protected bool IsROMBankRegion(int address)
         {
-            return address >= 0x4000 && address <= 0x7FFF;
+            return 0x4000 <= address && address <= 0x7FFF;
         }
 
         protected bool IsBankSwitchingRegion(int address)
         {
-            return address >= 0x2000 && address <= 0x3FFF;
+            return 0x2000 <= address && address <= 0x3FFF;
         }
 
         protected bool IsUnsableRegion(int address)
         {
-            return address >= 0xFEA0 && address <= 0xFEFF;
+            return 0xFEA0 <= address && address <= 0xFEFF;
         }
 
         protected bool IsEchoRegion(int address)
         {
-            return address >= 0xE000 && address <= 0xFDFF;
+            return 0xE000 <= address && address <= 0xFDFF;
         }
 
         protected bool IsDividerRegister(int address)
@@ -141,7 +151,17 @@ namespace SharpBoy.Cartridge
 
         protected bool IsTimerControl(int address)
         {
-            return address == timerControl;
+            return address == 0xFF07;
+        }
+
+        protected bool IsInterruptRequest(int address)
+        {
+            return address == 0xFF0F;
+        }
+
+        protected bool IsInterruptEnable(int address)
+        {
+            return address == 0xFFFF;
         }
     }
 }

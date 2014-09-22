@@ -50,6 +50,8 @@ namespace SharpBoy.Core
                 Memory = CreateMBC(CartInfo.CartType, fileStream);
             }
             Memory.UpdateTimerHandler += HandleTimerUpdate;
+            Memory.InterruptEnableHandler += HandleInterruptEnable;
+            Memory.InterruptRequestHandler += HandleInterruptRequest;
             Reset();
         }
 
@@ -89,7 +91,7 @@ namespace SharpBoy.Core
                     if (result > 255)
                     {
                         Memory[0xFF05] = Memory[0xFF06];
-                        // TODO: Request interrupt.
+                        Interrupts.TimerRequested = true;
                     }
                     else
                     {
@@ -110,8 +112,8 @@ namespace SharpBoy.Core
          */
         public void HandleTimerUpdate(byte value)
         {
-            Debug.WriteLine("Timer handler triggered");
-            TimerEnabled = (value & (1 << 2)) == (1 << 2);
+            //Debug.WriteLine("Timer handler triggered");
+            TimerEnabled = BitSet(2, value);
 
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
             byte refreshSetting = (byte)(value & 3);
@@ -127,6 +129,75 @@ namespace SharpBoy.Core
                     break;
                 default:
                     break;
+            }
+        }
+
+        /*
+         * Bit 0: V-Blank 
+         * Bit 1: LCD STAT
+         * Bit 2: Timer     
+         * Bit 4: Joypad  
+         */
+        public void HandleInterruptEnable(byte value)
+        {
+            //Debug.WriteLine("Interrupt enable handler triggered");
+            if (BitSet(0, value)) Interrupts.VBlankEnabled = true;
+            if (BitSet(1, value)) Interrupts.LCDEnabled = true;
+            if (BitSet(2, value)) Interrupts.TimerEnabled = true;
+            if (BitSet(4, value)) Interrupts.JoypadEnabled = true;
+        }
+
+        /*
+         * Bit 0: V-Blank 
+         * Bit 1: LCD STAT
+         * Bit 2: Timer     
+         * Bit 4: Joypad  
+         */
+        public void HandleInterruptRequest(byte value)
+        {
+            //Debug.WriteLine("Interrupt request handler triggered");
+            if (BitSet(0, value)) Interrupts.VBlankRequested = true;
+            if (BitSet(1, value)) Interrupts.LCDRequested = true;
+            if (BitSet(2, value)) Interrupts.TimerRequested = true;
+            if (BitSet(4, value)) Interrupts.JoypadRequested = true;
+        }
+
+        // http://problemkaputt.de/pandocs.htm#interrupts
+        public void ProcessInterrupts()
+        {
+            if (InterruptsEnabled)
+            {
+                InterruptsEnabled = false;
+                ushort addressJump = 0x0000;
+
+                Debug.WriteLine(Interrupts);
+
+                if (Interrupts.VBlankEnabled && Interrupts.VBlankRequested)
+                {
+                    addressJump = 0x0040;
+                    Interrupts.VBlankRequested = false;
+                }
+                else if (Interrupts.LCDEnabled && Interrupts.LCDRequested)
+                {
+                    addressJump = 0x0048;
+                    Interrupts.LCDRequested = false;
+                }
+                else if (Interrupts.TimerEnabled && Interrupts.TimerRequested)
+                {
+                    addressJump = 0x0050;
+                    Interrupts.TimerRequested = false;
+                }
+                else if (Interrupts.JoypadEnabled && Interrupts.JoypadRequested)
+                {
+                    addressJump = 0x0060;
+                    Interrupts.JoypadRequested = false;
+                }
+
+                if (addressJump != 0x0000)
+                {
+                    PushAddressOntoStack(ProgramCounter);
+                    ProgramCounter = addressJump;
+                }                
             }
         }
 
@@ -1177,6 +1248,7 @@ namespace SharpBoy.Core
             DividerCycles = 0;
 
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
+            // The divider increments at rate of 16384Hz
             DividerCycleIncrement = cyclesPerSecond / 16384;
 
             RegisterAF.Value = 0x01B0;
