@@ -11,9 +11,6 @@ namespace SharpBoy
 {
     public partial class MainWindow : Window
     {
-        // Used for loading roms and loading save states
-        private delegate void LoadMethod(string filename);
-
         private readonly Int32Rect renderRectangle;
 
         private IEmulator emulator;
@@ -55,7 +52,7 @@ namespace SharpBoy
             renderFrame.WritePixels(renderRectangle, screenData, emulator.RenderWidth, 0);
         }
 
-        private void LoadFile(LoadMethod loadMethod, string filter = "Game Boy Roms|*.gb")
+        private void LoadFile(Action<string> loadMethod, string filter = "Game Boy Roms|*.gb")
         {
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = filter;
