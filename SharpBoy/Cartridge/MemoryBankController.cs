@@ -90,20 +90,26 @@ namespace SharpBoy.Cartridge
                 {
                     data[address] = 0;
                 }
-                else if (IsTimerControl(address) && UpdateTimerHandler != null)
+                else if (IsTimerControl(address))
                 {
                     data[address] = value;
-                    UpdateTimerHandler(value);
+
+                    if (UpdateTimerHandler != null)
+                        UpdateTimerHandler(value);
                 }
-                else if (IsInterruptRequest(address) && InterruptRequestHandler != null)
+                else if (IsInterruptRequest(address))
                 {
                     data[address] = value;
-                    InterruptRequestHandler(value);
+
+                    if (InterruptRequestHandler != null)
+                        InterruptRequestHandler(value);
                 }
-                else if (IsInterruptEnable(address) && InterruptEnableHandler != null)
+                else if (IsInterruptEnable(address))
                 {
                     data[address] = value;
-                    InterruptEnableHandler(value);
+
+                    if (InterruptEnableHandler != null)
+                        InterruptEnableHandler(value);
                 }
                 else
                 {
