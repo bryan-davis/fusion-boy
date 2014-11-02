@@ -668,5 +668,10 @@
         {
             return (RegisterAF.Low & flag) == flag;
         }
+
+        private bool LCDEnabled()
+        {
+            return BitSet(7, Memory[0xFF40]);
+        }
     }
 }

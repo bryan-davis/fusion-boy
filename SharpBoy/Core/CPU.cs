@@ -35,9 +35,9 @@ namespace SharpBoy.Core
         public int DividerCycleIncrement { get; private set; }
         public int DividerCycles { get; private set; }
 
-        public CPU()
-        {
-        }
+        public int ScanlineCounter { get; private set; }
+
+        public CPU() { }
 
         public void LoadRom(string romPath)
         {
@@ -69,6 +69,14 @@ namespace SharpBoy.Core
             byte high = Memory[ProgramCounter++];
             values |= (ushort)(high << 8);
             return values;
+        }
+
+        public void UpdateGraphics(int cycleCount)
+        {
+            // TODO: So much more to do!
+
+            if (!LCDEnabled())
+                return;
         }
 
         /*
@@ -199,7 +207,7 @@ namespace SharpBoy.Core
                     ProgramCounter = addressJump;
                 }                
             }
-        }
+        }        
 
         private void HandleDivider(int cycleCount)
         {
@@ -1246,6 +1254,7 @@ namespace SharpBoy.Core
             TimerCycleIncrement = 0;
             TimerCycles = 0;
             DividerCycles = 0;
+            ScanlineCounter = 456;  // 456 cycles needed for each scanline
 
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
             // The divider increments at rate of 16384Hz

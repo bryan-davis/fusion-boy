@@ -7,6 +7,7 @@ namespace SharpBoy.Cartridge
     {
         protected const int memorySize = 0x10000; // 65536 - 64K
         protected const int dividerAddress = 0xFF04;
+        protected const int lcdAddress = 0xFF44;
         protected byte[] data;
         protected byte[] cartridge;
         
@@ -111,6 +112,10 @@ namespace SharpBoy.Cartridge
                     if (InterruptEnableHandler != null)
                         InterruptEnableHandler(value);
                 }
+                else if (IsLCDRegister(address))
+                {
+                    data[address] = 0;
+                }
                 else
                 {
                     data[address] = value;
@@ -118,11 +123,16 @@ namespace SharpBoy.Cartridge
             }
         }
 
-        // Writing directly to the divider address resets it to 0, so we
-        // need a dedicated method to increment it.
+        // Writing directly to the divider address or LCD address will reset 
+        // them to 0, so we need dedicated methods to increment them.
         public void IncrementDividerRegister()
         {
             data[dividerAddress]++;
+        }
+
+        public void IncrementLCDRegister()
+        {
+            data[lcdAddress]++;
         }
 
         protected bool IsROM(int address)
@@ -153,6 +163,11 @@ namespace SharpBoy.Cartridge
         protected bool IsDividerRegister(int address)
         {
             return address == dividerAddress;
+        }
+
+        protected bool IsLCDRegister(int address)
+        {
+            return address == lcdAddress;
         }
 
         protected bool IsTimerControl(int address)
