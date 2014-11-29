@@ -1,4 +1,10 @@
-﻿namespace SharpBoy.Core
+﻿/*
+ * Copyright 2014 Bryan Davis
+ * Licensed under GPLv2
+ * Refer to the license.txt file included
+ */
+
+namespace SharpBoy.Core
 {
     /*
      * This portion of the class contains all supporting methods used by the

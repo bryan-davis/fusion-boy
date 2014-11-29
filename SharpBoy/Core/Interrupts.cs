@@ -1,4 +1,10 @@
-﻿namespace SharpBoy.Core
+﻿/*
+ * Copyright 2014 Bryan Davis
+ * Licensed under GPLv2
+ * Refer to the license.txt file included
+ */
+
+namespace SharpBoy.Core
 {
     public class Interrupts
     {

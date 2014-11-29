@@ -1,4 +1,10 @@
-﻿using SharpBoy.Core;
+﻿/*
+ * Copyright 2014 Bryan Davis
+ * Licensed under GPLv2
+ * Refer to the license.txt file included
+ */
+
+using SharpBoy.Core;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;

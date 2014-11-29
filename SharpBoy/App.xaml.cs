@@ -1,4 +1,10 @@
-﻿using System;
+﻿/*
+ * Copyright 2014 Bryan Davis
+ * Licensed under GPLv2
+ * Refer to the license.txt file included
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
