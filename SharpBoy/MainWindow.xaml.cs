@@ -1,4 +1,10 @@
-﻿using Microsoft.Win32;
+﻿/*
+ * Copyright 2014 Bryan Davis
+ * Licensed under GPLv2
+ * Refer to the license.txt file included
+ */
+
+using Microsoft.Win32;
 using SharpBoy.Emulator;
 using System;
 using System.Threading;

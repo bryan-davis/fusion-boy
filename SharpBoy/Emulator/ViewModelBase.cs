@@ -1,4 +1,10 @@
-﻿using System.ComponentModel;
+﻿/*
+ * Copyright 2014 Bryan Davis
+ * Licensed under GPLv2
+ * Refer to the license.txt file included
+ */
+
+using System.ComponentModel;
 
 namespace SharpBoy.Emulator
 {
