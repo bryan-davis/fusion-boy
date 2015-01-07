@@ -79,11 +79,11 @@ namespace SharpBoy.Emulator
                 UpdateFrame();
                 Render();
 
-                double elapsedTime;
-                do
-                {
-                    elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
-                } while (elapsedTime < microsecondsPerFrame);
+                //double elapsedTime;
+                //do
+                //{
+                //    elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
+                //} while (elapsedTime < microsecondsPerFrame);
             }
         }
 
@@ -132,6 +132,7 @@ namespace SharpBoy.Emulator
                 }
 
                 cpu.HandleTimers(cycles);
+                cpu.UpdateGraphics(cycles);
                 cpu.ProcessInterrupts();
             }            
         }
@@ -159,6 +160,11 @@ namespace SharpBoy.Emulator
 
         private void Render()
         {
+            if (RenderHandler != null)
+            {
+                RenderHandler(cpu.Display.ScreenData);
+            }
+
             frameCount++;
             if (frameRateTimer.ElapsedMilliseconds >= 1000)
             {
