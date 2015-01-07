@@ -79,11 +79,11 @@ namespace SharpBoy.Emulator
                 UpdateFrame();
                 Render();
 
-                //double elapsedTime;
-                //do
-                //{
-                //    elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
-                //} while (elapsedTime < microsecondsPerFrame);
+                double elapsedTime;
+                do
+                {
+                    elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
+                } while (elapsedTime < microsecondsPerFrame);
             }
         }
 
