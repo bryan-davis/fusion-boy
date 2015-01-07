@@ -557,41 +557,17 @@ namespace SharpBoy.Core
         }
 
         // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-        private void TestBit(byte bit, byte value)
-        {   
-            if (BitSet(bit, value))
+        // TODO: Swap parameter ordering
+        private void TestBit(byte value, byte bit)
+        {
+            if (Util.IsBitSet(value, bit))
                 ResetFlag(FlagZ);
             else
                 SetFlag(FlagZ);
 
             ResetFlag(FlagN);
             SetFlag(FlagH);
-        }
-
-        private bool BitSet(byte bit, byte value)
-        {
-            return (value & (1 << bit)) == (1 << bit);
-        }
-
-        private void SetBit(byte bit, ref byte value)
-        {
-            value |= (byte)(1 << bit);
-        }
-
-        private void SetBit(byte bit, ushort address)
-        {
-            Memory[address] |= (byte)(1 << bit);
-        }
-
-        private void ResetBit(byte bit, ref byte value)
-        {
-            value &= (byte)~(1 << bit);
-        }
-
-        private void ResetBit(byte bit, ushort address)
-        {
-            Memory[address] &= (byte)~(1 << bit);
-        }
+        }        
 
         private void Jump(ushort address)
         {            
@@ -677,7 +653,7 @@ namespace SharpBoy.Core
 
         private bool LCDEnabled()
         {
-            return BitSet(7, Memory[0xFF40]);
+            return Util.IsBitSet(Memory[0xFF40], 7);
         }
     }
 }

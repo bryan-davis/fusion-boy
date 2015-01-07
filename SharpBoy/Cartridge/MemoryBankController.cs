@@ -14,6 +14,7 @@ namespace SharpBoy.Cartridge
         protected const int memorySize = 0x10000; // 65536 - 64K
         protected const int dividerAddress = 0xFF04;
         protected const int lcdAddress = 0xFF44;
+        protected const int lcdControlAddress = 0xFF40;
         protected byte[] data;
         protected byte[] cartridge;
         
