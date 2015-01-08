@@ -557,7 +557,6 @@ namespace SharpBoy.Core
         }
 
         // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
-        // TODO: Swap parameter ordering
         private void TestBit(byte value, byte bit)
         {
             if (Util.IsBitSet(value, bit))
