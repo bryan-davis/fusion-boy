@@ -11,10 +11,10 @@ namespace SharpBoy.Cartridge
 {
     public abstract class MemoryBankController
     {
-        protected const int memorySize = 0x10000; // 65536 - 64K
-        protected const int dividerAddress = 0xFF04;
-        protected const int lcdAddress = 0xFF44;
-        protected const int lcdControlAddress = 0xFF40;
+        protected const int MemorySize = 0x10000; // 65536 - 64K
+        protected const int DividerAddress = 0xFF04;
+        protected const int ScanlineAddress = 0xFF44;
+        protected const int LCDControlAddress = 0xFF40;
         protected byte[] data;
         protected byte[] cartridge;
         
@@ -36,7 +36,7 @@ namespace SharpBoy.Cartridge
             cartridge = new byte[fileStream.Length];
             fileStream.Read(cartridge, 0x0, cartridge.Length);
 
-            data = new byte[memorySize];
+            data = new byte[MemorySize];
         }
 
         // http://problemkaputt.de/pandocs.htm#powerupsequence
@@ -123,6 +123,10 @@ namespace SharpBoy.Cartridge
                 {
                     data[address] = 0;
                 }
+                else if (IsDMAAddress(address))
+                {
+                    PerformDMATransfer(value);
+                }
                 else
                 {
                     data[address] = value;
@@ -134,12 +138,23 @@ namespace SharpBoy.Cartridge
         // them to 0, so we need dedicated methods to increment them.
         public void IncrementDividerRegister()
         {
-            data[dividerAddress]++;
+            data[DividerAddress]++;
         }
 
-        public void IncrementLCDRegister()
+        public void IncrementLCDScanline()
         {
-            data[lcdAddress]++;
+            data[ScanlineAddress]++;
+        }
+
+        // http://problemkaputt.de/pandocs.htm#lcdoamdmatransfers
+        protected void PerformDMATransfer(int sourceAddress)
+        {
+            ushort address = (ushort)(sourceAddress / 0x100);
+            // Copying 160 bytes over
+            for (int i = 0; i < 160; i++)
+			{
+                Memory[0xFE00 + i] = Memory[address + i];
+			}
         }
 
         protected bool IsROM(int address)
@@ -169,12 +184,12 @@ namespace SharpBoy.Cartridge
 
         protected bool IsDividerRegister(int address)
         {
-            return address == dividerAddress;
+            return address == DividerAddress;
         }
 
         protected bool IsLCDRegister(int address)
         {
-            return address == lcdAddress;
+            return address == ScanlineAddress;
         }
 
         protected bool IsTimerControl(int address)
@@ -190,6 +205,11 @@ namespace SharpBoy.Cartridge
         protected bool IsInterruptEnable(int address)
         {
             return address == 0xFFFF;
+        }
+
+        protected bool IsDMAAddress(int address)
+        {
+            return address == 0xFF46;
         }
     }
 }
