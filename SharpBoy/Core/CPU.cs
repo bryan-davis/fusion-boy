@@ -44,8 +44,8 @@ namespace SharpBoy.Core
         public Display Display { get; private set; }
 
         public int DisplayCounter { get; private set; }
-        private const int screenRefreshRate = 70224;    // Screen refresh is every 70,224 cycles
-        private const int cyclesPerScanline = 456;
+        private const int ScreenRefreshRate = 70224;    // Screen refresh is every 70,224 cycles
+        private const int CyclesPerScanline = 456;
         private int scanlineCycleCounter;
 
         public CPU() { }
@@ -91,13 +91,17 @@ namespace SharpBoy.Core
                 return;
             }
 
-            scanlineCycleCounter = Util.Clamp(scanlineCycleCounter + cycleCount, 0, cyclesPerScanline);
+            scanlineCycleCounter += cycleCount;
+            if (scanlineCycleCounter >= CyclesPerScanline)
+            {
+                Display.Render();
+                scanlineCycleCounter = 0;
+            }
             Display.UpdateLCDStatus(scanlineCycleCounter);
 
             DisplayCounter += cycleCount;
-            if (DisplayCounter >= screenRefreshRate)
+            if (DisplayCounter >= ScreenRefreshRate)
             {
-                Display.Render();
                 DisplayCounter = 0;
             }
         }

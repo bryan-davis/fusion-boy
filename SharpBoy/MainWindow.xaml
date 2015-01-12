@@ -1,7 +1,7 @@
 ﻿<Window x:Class="SharpBoy.MainWindow" x:Name="EmuWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Game Boy Emulator" Height="550" Width="615" KeyDown="Window_KeyDown" 
+        Title="Game Boy Emulator" Height="550" Width="540" KeyDown="Window_KeyDown" 
         KeyUp="Window_KeyUp" Closing="Window_Closing">
     <DockPanel Background="Black">
         <Menu Name="menu" DockPanel.Dock="Top">
