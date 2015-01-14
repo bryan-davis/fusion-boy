@@ -7,6 +7,8 @@
 using System;
 using System.IO;
 
+using System.Diagnostics;
+
 namespace SharpBoy.Cartridge
 {
     public abstract class MemoryBankController
@@ -84,6 +86,11 @@ namespace SharpBoy.Cartridge
             }
             set
             {
+                if (0x8000 <= address && address <= 0x9FFF && value != 0)
+                {
+                    Debug.WriteLine("{0:X} being written to {1:X}", value, address);
+                }
+
                 if (IsROM(address) || IsUnsableRegion(address))
                 {
                     return;
@@ -149,12 +156,12 @@ namespace SharpBoy.Cartridge
         // http://problemkaputt.de/pandocs.htm#lcdoamdmatransfers
         protected void PerformDMATransfer(int sourceAddress)
         {
-            ushort address = (ushort)(sourceAddress / 0x100);
+            ushort address = (ushort)(sourceAddress * 0x100);
             // Copying 160 bytes over
             for (int i = 0; i < 160; i++)
-			{
-                Memory[0xFE00 + i] = Memory[address + i];
-			}
+            {
+                data[0xFE00 + i] = data[address + i];
+            }
         }
 
         protected bool IsROM(int address)

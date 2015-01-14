@@ -20,7 +20,7 @@ namespace SharpBoy.Core
         private const ushort StatusAddress = 0xFF41;
 
         // Black, Dark Grey, Light Grey, White
-        private readonly int[] palette = { 0, 96, 192, 255 };
+        private readonly byte[] Palette = { 255, 192, 96, 0 };
 
         public MemoryBankController Memory { get; private set; }
         public Interrupts Interrupts { get; private set; }
@@ -36,15 +36,15 @@ namespace SharpBoy.Core
         public void Render()
         {
             RenderBackground();
-            RenderTiles();
+            RenderWindow();
             RenderSprites();
 
             // TODO: Remove this random code
-            Random random = new Random();
-            for (int i = 0; i < ScreenData.Length; i++)
-            {
-                ScreenData[i] = (byte)random.Next(256);
-            }
+            //Random random = new Random();
+            //for (int i = 0; i < ScreenData.Length; i++)
+            //{
+            //    ScreenData[i] = (byte)random.Next(256);
+            //}
         }
 
         // http://problemkaputt.de/pandocs.htm#lcdstatusregister
@@ -87,7 +87,7 @@ namespace SharpBoy.Core
                 else
                 {
                     Util.SetBits(Memory, StatusAddress, 0, 1);
-                    // TODO: Kick off scanline rendering from here?
+                    // TODO: Kick off scanline rendering from here?                    
                 }
             }
 
@@ -131,6 +131,8 @@ namespace SharpBoy.Core
             // Is the background display enabled?
             if (Util.IsBitSet(Memory, ControlAddress, 0))
             {
+                // A nice visualization of the scrollX and scrollY values
+                // http://imrannazar.com/content/img/jsgb-gpu-bg-scrl.png
                 byte scrollX = (byte)(Memory[0xFF42]);
                 byte scrollY = (byte)(Memory[0xFF43]);
                 // Tile data start location
@@ -147,19 +149,51 @@ namespace SharpBoy.Core
                 if (bgTileDataAddress == 0x8800)
                     mapOffset = 128;
 
+                int line = Memory[0xFF44];
                 for (int i = 0; i < Width; i++)
                 {
                     // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen
                     // Calculates which tile map we should retrieve
-                    ushort bgTileNumber = (ushort)( ((scrollY / 8) * 32) + (scrollX / 8) );
-                    short bgTileDisplayIndex = Memory[bgTileMapAddress + bgTileNumber];
-                    byte byte1 = Memory[bgTileDataAddress + ((bgTileDisplayIndex + mapOffset) * TileSize)];
-                    byte byte2 = Memory[bgTileDataAddress + ((bgTileDisplayIndex + mapOffset) * TileSize) + 1];
+                    // (((scrollY / 8) * 32) + (scrollX / 8));
+                    ushort bgTileNumber = (ushort)Util.Convert2dTo1d((scrollX + i) / 8, (scrollY + line) / 8, 32);
+
+                    // Calculate the index which contains yet another index that points to where the tile data is
+                    short bgTileDisplayIndex = Memory[bgTileMapAddress + bgTileNumber];                    
+
+                    // Calculate where the start of the tile data is in memory
+                    int tileStartIndex = bgTileDataAddress + ((bgTileDisplayIndex + mapOffset) * TileSize);
+
+                    // Which column of the tile do we need to address in memory?
+                    int tileX = (scrollX + i) % 8;
+                    // Which line of the tile do we need to address in memory?
+                    int tileY = (scrollY + line) % 8;
+
+                    //int tilePixelOffset = Util.Convert2dTo1d(tileX, tileY, 8);
+                    int tileLineOffset = tileY * 2;
+                    byte byte1 = Memory[tileStartIndex + tileLineOffset];
+                    byte byte2 = Memory[tileStartIndex + tileLineOffset + 1];
+
+                    ushort graphicsIndex = (ushort)Util.Convert2dTo1d(i, line, Width);
+
+                    byte colorValue = 0;
+                    // Calculate the low bit
+                    colorValue |= (byte)((byte1 >> (7 - tileX)) & 1);
+                    // Calculate the high bit
+                    colorValue |= (byte)(((byte2 >> (7 - tileX)) & 1) << 1);
+
+                    // Least significant bits are swapped compared to the array containing the screen data
+                    // e.g. graphicsIndex 0 is equal to bit 7
+                    ScreenData[graphicsIndex] = GetColor(colorValue);
+
+                    //for (int j = 7 - tileX; j >= 0; j--)
+                    //{
+                    //    break;
+                    //}
                 }
             }
         }
 
-        private void RenderTiles()
+        private void RenderWindow()
         {
             // Is the window display enabled?
             if (Util.IsBitSet(Memory, ControlAddress, 5))
@@ -177,11 +211,40 @@ namespace SharpBoy.Core
             }
         }
 
-        // Converts a 2d screen coordinate to the 1d index
-        // that the screen data is actually stored in
-        private int Convert2dTo1d(int x, int y)
+        // Palettes can be altered by a game
+        // http://problemkaputt.de/pandocs.htm#lcdmonochromepalettes
+        private byte GetColor(byte colorValue)
         {
-            return (y * Width) + x;
+            byte palette = Memory[0xFF47];
+            byte high = 0, low = 0;
+
+            switch (colorValue)
+            {
+                case 0:
+                    high = 1;
+                    low = 0;
+                    break;
+                case 1:
+                    high = 3;
+                    low = 2;
+                    break;
+                case 2:
+                    high = 5;
+                    low = 4;
+                    break;
+                case 3:
+                    high = 7;
+                    low = 6;
+                    break;
+                default:
+                    break;
+            }
+
+            int colorIndex = 0;
+            colorIndex |= Util.GetBitValue(palette, low);
+            colorIndex |= Util.GetBitValue(palette, high) << 1;
+
+            return Palette[colorIndex];
         }
     }
 }
