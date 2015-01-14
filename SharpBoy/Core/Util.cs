@@ -52,5 +52,17 @@ namespace SharpBoy.Core
                 memory[address] &= (byte)~(1 << bit);
             }            
         }
+
+        public static int GetBitValue(byte value, byte bit)
+        {
+            return IsBitSet(value, bit) ? 1 : 0;
+        }
+
+        // Converts a 2d screen coordinate to the 1d index
+        // that the screen data is actually stored in
+        public static int Convert2dTo1d(int x, int y, int width)
+        {
+            return (y * width) + x;
+        }
     }
 }

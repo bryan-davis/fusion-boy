@@ -270,6 +270,7 @@ namespace SharpBoy.Core
         {
             sbyte value = (sbyte)ReadNextValue();
             int result = StackPointer.Value + value;
+            // TODO: Should this be Memory[StackPointer.Value] = (byte)result; ?
             StackPointer.Value = (ushort)result;
             ResetAllFlags();
 
