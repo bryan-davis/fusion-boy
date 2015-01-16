@@ -35,6 +35,7 @@ namespace SharpBoy.Core
 
         public Interrupts Interrupts { get; private set; }
         public bool InterruptsEnabled { get; private set; }
+        public bool ProcessInterruptsThisTime { get; private set; }
         public bool TimerEnabled { get; private set; }
         public int TimerCycleIncrement { get; private set; }
         public int TimerCycles { get; private set; }
@@ -84,7 +85,6 @@ namespace SharpBoy.Core
 
         public void UpdateGraphics(int cycleCount)
         {
-            // TODO: So much more to do!
             if (!LCDEnabled())
             {
                 ResetLCDStatus();
@@ -186,10 +186,10 @@ namespace SharpBoy.Core
         public void HandleInterruptEnable(byte value)
         {
             //Debug.WriteLine("Interrupt enable handler triggered");
-            if (Util.IsBitSet(value, 0)) Interrupts.VBlankEnabled = true;
-            if (Util.IsBitSet(value, 1)) Interrupts.LCDStatusEnabled = true;
-            if (Util.IsBitSet(value, 2)) Interrupts.TimerEnabled = true;
-            if (Util.IsBitSet(value, 4)) Interrupts.JoypadEnabled = true;
+            Interrupts.VBlankEnabled = Util.IsBitSet(value, 0);
+            Interrupts.LCDStatusEnabled = Util.IsBitSet(value, 1);
+            Interrupts.TimerEnabled = Util.IsBitSet(value, 2);
+            Interrupts.JoypadEnabled = Util.IsBitSet(value, 4);
         }
 
         /*
@@ -201,10 +201,10 @@ namespace SharpBoy.Core
         public void HandleInterruptRequest(byte value)
         {
             //Debug.WriteLine("Interrupt request handler triggered");
-            if (Util.IsBitSet(value, 0)) Interrupts.VBlankRequested = true;
-            if (Util.IsBitSet(value, 1)) Interrupts.LCDStatusRequested = true;
-            if (Util.IsBitSet(value, 2)) Interrupts.TimerRequested = true;
-            if (Util.IsBitSet(value, 4)) Interrupts.JoypadRequested = true;
+            Interrupts.VBlankRequested = Util.IsBitSet(value, 0);
+            Interrupts.LCDStatusRequested = Util.IsBitSet(value, 1);
+            Interrupts.TimerRequested = Util.IsBitSet(value, 2);
+            Interrupts.JoypadRequested = Util.IsBitSet(value, 4);
         }
 
         // http://problemkaputt.de/pandocs.htm#interrupts
@@ -212,37 +212,47 @@ namespace SharpBoy.Core
         {
             if (InterruptsEnabled)
             {
-                InterruptsEnabled = false;
-                ushort addressJump = 0x0000;
+                if (ProcessInterruptsThisTime)
+                {
+                    ushort addressJump = 0x0000;
 
-                Debug.WriteLine(Interrupts);
+                    //Debug.WriteLine(Interrupts);
 
-                if (Interrupts.VBlankEnabled && Interrupts.VBlankRequested)
-                {
-                    addressJump = 0x0040;
-                    Interrupts.VBlankRequested = false;
-                }
-                else if (Interrupts.LCDStatusEnabled && Interrupts.LCDStatusRequested)
-                {
-                    addressJump = 0x0048;
-                    Interrupts.LCDStatusRequested = false;
-                }
-                else if (Interrupts.TimerEnabled && Interrupts.TimerRequested)
-                {
-                    addressJump = 0x0050;
-                    Interrupts.TimerRequested = false;
-                }
-                else if (Interrupts.JoypadEnabled && Interrupts.JoypadRequested)
-                {
-                    addressJump = 0x0060;
-                    Interrupts.JoypadRequested = false;
-                }
+                    if (Interrupts.VBlankEnabled && Interrupts.VBlankRequested)
+                    {
+                        addressJump = 0x0040;
+                        Interrupts.VBlankRequested = false;
+                    }
+                    else if (Interrupts.LCDStatusEnabled && Interrupts.LCDStatusRequested)
+                    {
+                        addressJump = 0x0048;
+                        Interrupts.LCDStatusRequested = false;
+                    }
+                    else if (Interrupts.TimerEnabled && Interrupts.TimerRequested)
+                    {
+                        addressJump = 0x0050;
+                        Interrupts.TimerRequested = false;
+                    }
+                    else if (Interrupts.JoypadEnabled && Interrupts.JoypadRequested)
+                    {
+                        addressJump = 0x0060;
+                        Interrupts.JoypadRequested = false;
+                    }
 
-                if (addressJump != 0x0000)
+                    if (addressJump != 0x0000)
+                    {
+                        PushAddressOntoStack(ProgramCounter);
+                        ProgramCounter = addressJump;
+                        InterruptsEnabled = false;
+                        ProcessInterruptsThisTime = false;
+                    }                                                            
+                }
+                else
                 {
-                    PushAddressOntoStack(ProgramCounter);
-                    ProgramCounter = addressJump;
-                }                
+                    // We'll process interrupts after the next op code
+                    ProcessInterruptsThisTime = true;
+                }
+                                
             }
         }        
 
@@ -258,6 +268,7 @@ namespace SharpBoy.Core
 
         public void ExecuteOpCode(byte opCode)
         {
+            Debug.WriteLine("OP = {0:x} PC = {1:x} SP = {2:x} SP-Val = {3:x}", opCode, ProgramCounter - 1, StackPointer.Value, Memory[StackPointer.Value]);
             switch (opCode)
             {
                 case 0x00: // Do nothing
@@ -292,7 +303,7 @@ namespace SharpBoy.Core
                     break;
                 case 0x0F: RotateARightNoCarry();
                     break;
-                case 0x10: Stopped = true;
+                case 0x10: Stopped = true; ProgramCounter++;
                     break;
                 case 0x11: LoadValueToRegister16Bit(RegisterDE);
                     break;
@@ -730,7 +741,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xF2: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + RegisterBC.Low));
                     break;
-                case 0xF3: InterruptsEnabled = false;
+                case 0xF3: InterruptsEnabled = false; ProcessInterruptsThisTime = false;  // TODO: Interrupts aren't disabled until after the next op code is processed
                     break;
                 case 0xF5: PushAddressOntoStack(RegisterAF.Value);
                     break;
@@ -744,7 +755,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xFA: LoadMemoryToRegister8Bit(ref RegisterAF.High, ReadNextTwoValues());
                     break;
-                case 0xFB: InterruptsEnabled = true;
+                case 0xFB: InterruptsEnabled = true; ProcessInterruptsThisTime = false;   // TODO: Interrupts aren't processed until after the next op code is processed
                     break;
                 case 0xFE: CompareWithRegisterA(ReadNextValue());
                     break;

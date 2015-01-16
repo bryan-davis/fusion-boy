@@ -60,6 +60,11 @@ namespace SharpBoy.Core
                 Util.SetBits(Memory, StatusAddress, 0);
                 Util.ClearBits(Memory, StatusAddress, 1);
                 interruptRequested = Util.IsBitSet(Memory, StatusAddress, 4);
+
+                if (currentLine == 144)
+                {
+                    Interrupts.VBlankRequested = true;
+                }
                 
                 Memory.IncrementLCDScanline();
                 if (Memory[0xFF44] > 153)

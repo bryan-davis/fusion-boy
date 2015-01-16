@@ -59,8 +59,14 @@ namespace SharpBoy.Core
         private void PushAddressOntoStack(ushort address)
         {
             // High byte first, then low byte.
-            Memory[StackPointer.Value--] = (byte)(address >> 8);
-            Memory[StackPointer.Value--] = (byte)(address & 0x00FF);
+            //Memory[StackPointer.Value--] = (byte)(address >> 8);
+            //Memory[StackPointer.Value--] = (byte)(address & 0x00FF);
+            byte high = (byte)(address >> 8);
+            byte low = (byte)(address & 0xFF);
+            StackPointer.Value--;
+            Memory[StackPointer.Value] = high;
+            StackPointer.Value--;
+            Memory[StackPointer.Value] = low;
         }
 
         private void PopValuesIntoRegister(Register register)
@@ -628,6 +634,7 @@ namespace SharpBoy.Core
         {
             Return();
             InterruptsEnabled = true;
+            ProcessInterruptsThisTime = true;
         }
 
         private void ResetAllFlags()
