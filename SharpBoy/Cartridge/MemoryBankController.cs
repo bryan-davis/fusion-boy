@@ -20,7 +20,6 @@ namespace SharpBoy.Cartridge
         protected byte[] data;
         protected byte[] cartridge;
         
-        public byte[] Memory { get; private set; }
         public byte CurrentROMBank { get; set; }
         public byte CurrentRAMBank { get; set; }
         public bool InROMBankMode { get; set; }
@@ -86,10 +85,10 @@ namespace SharpBoy.Cartridge
             }
             set
             {
-                if (0x8000 <= address && address <= 0x9FFF && value != 0)
-                {
-                    Debug.WriteLine("{0:X} being written to {1:X}", value, address);
-                }
+                //if (0x8000 <= address && address <= 0x9FFF && value != 0)
+                //{
+                //    Debug.WriteLine("{0:X} being written to {1:X}", value, address);
+                //}
 
                 if (IsROM(address) || IsUnsableRegion(address))
                 {

@@ -116,9 +116,11 @@ namespace SharpBoy.Emulator
         private void UpdateFrame()
         {
             int currentCycles = 0;
+            int opCodeCount = 0;
 
             while (currentCycles < cyclesPerFrame)
             {
+                opCodeCount++;
                 int opCodeLookup = ExecuteOpCode();
 
                 int cycles;
