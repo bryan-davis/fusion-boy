@@ -16,8 +16,6 @@ namespace SharpBoy.Core
         private const int Mode0Bounds = 204;
         private const int Mode2Bounds = 80;
         private const int Mode3Bounds = 172;
-        private const ushort ControlAddress = 0xFF40;
-        private const ushort StatusAddress = 0xFF41;
 
         // Black, Dark Grey, Light Grey, White
         private readonly byte[] Palette = { 255, 192, 96, 0 };
@@ -35,71 +33,69 @@ namespace SharpBoy.Core
 
         public void Render()
         {
-            RenderBackground();
-            RenderWindow();
-            RenderSprites();
+            byte currentLine = Memory[0xFF44];
 
-            // TODO: Remove this random code
-            //Random random = new Random();
-            //for (int i = 0; i < ScreenData.Length; i++)
-            //{
-            //    ScreenData[i] = (byte)random.Next(256);
-            //}
+            if (currentLine == 144)
+            {
+                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.vBlank);
+            }
+
+            if (currentLine > 153)
+            {
+                Memory[0xFF44] = 0;
+            }
+
+            if (currentLine < 144)
+            {
+                RenderBackground();
+                RenderWindow();
+                RenderSprites();
+            }
+            
+            Memory.IncrementLCDScanline();
         }
 
         // http://problemkaputt.de/pandocs.htm#lcdstatusregister
         public void UpdateLCDStatus(int scanlineCycleCounter)
         {
-            int previousMode = Memory[StatusAddress] & 3;
+            int previousMode = Memory[Util.LcdStatAddress] & 3;
             bool interruptRequested = false;
             int currentLine = Memory[0xFF44];
 
             // Mode 1 - V-Blank
             if (currentLine >= Height)
             {
-                Util.SetBits(Memory, StatusAddress, 0);
-                Util.ClearBits(Memory, StatusAddress, 1);
-                interruptRequested = Util.IsBitSet(Memory, StatusAddress, 4);
-
-                if (currentLine == 144)
-                {
-                    Interrupts.VBlankRequested = true;
-                }
-                
-                Memory.IncrementLCDScanline();
-                if (Memory[0xFF44] > 153)
-                {
-                    Memory[0xFF44] = 0;
-                }
+                Util.SetBits(Memory, Util.LcdStatAddress, 0);
+                Util.ClearBits(Memory, Util.LcdStatAddress, 1);
+                interruptRequested = Util.IsBitSet(Memory, Util.LcdStatAddress, 4);                
             }
             else
             {
                 // Mode 0 - H-Blank
                 if (scanlineCycleCounter <= Mode0Bounds)
                 {
-                    Memory.IncrementLCDScanline();
-                    Util.ClearBits(Memory, StatusAddress, 0, 1);
-                    interruptRequested = Util.IsBitSet(Memory, StatusAddress, 3);
+                    Util.ClearBits(Memory, Util.LcdStatAddress, 0, 1);
+                    interruptRequested = Util.IsBitSet(Memory, Util.LcdStatAddress, 3);
                 }
                 // Mode 2 - Searching OAM RAM
                 else if (scanlineCycleCounter <= (Mode0Bounds + Mode2Bounds))
                 {
-                    Util.SetBits(Memory, StatusAddress, 1);
-                    Util.ClearBits(Memory, StatusAddress, 0);
-                    interruptRequested = Util.IsBitSet(Memory, StatusAddress, 5);
+                    Util.SetBits(Memory, Util.LcdStatAddress, 1);
+                    Util.ClearBits(Memory, Util.LcdStatAddress, 0);
+                    interruptRequested = Util.IsBitSet(Memory, Util.LcdStatAddress, 5);
                 }
                 // Mode 3 - Transfering Data to LCD Driver
                 else
                 {
-                    Util.SetBits(Memory, StatusAddress, 0, 1);
-                    // TODO: Kick off scanline rendering from here?                    
+                    Util.SetBits(Memory, Util.LcdStatAddress, 0, 1);             
                 }
             }
 
-            int currentMode = Memory[StatusAddress] & 3;
+            int currentMode = Memory[Util.LcdStatAddress] & 3;
             if (currentMode != previousMode && interruptRequested)
             {
-                Interrupts.LCDStatusRequested = true;
+                // Request LCD Stat interrupt
+                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
             }
 
             UpdateCoincidence();
@@ -111,15 +107,17 @@ namespace SharpBoy.Core
             byte lycRegister = Memory[0xFF45];
             if (lyRegister == lycRegister)
             {
-                Util.SetBits(Memory, StatusAddress, 2);
-                if (Util.IsBitSet(Memory, StatusAddress, 6))
+                Util.SetBits(Memory, Util.LcdStatAddress, 2);
+                if (Util.IsBitSet(Memory, Util.LcdStatAddress, 6))
                 {
-                    Interrupts.LCDStatusRequested = true;
+                    // Request LCD Stat interrupt
+                    Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
+                    Util.SetBits(Memory, 0xFF0F, (byte)Interrupts.lcdStat);
                 }
             }
             else
             {
-                Util.ClearBits(Memory, StatusAddress, 2);
+                Util.ClearBits(Memory, Util.LcdStatAddress, 2);
             }
         }        
 
@@ -134,7 +132,7 @@ namespace SharpBoy.Core
         private void RenderBackground()
         {
             // Is the background display enabled?
-            if (Util.IsBitSet(Memory, ControlAddress, 0))
+            if (Util.IsBitSet(Memory, Util.LcdControlAddress, 0))
             {
                 // A nice visualization of the scrollX and scrollY values
                 // http://imrannazar.com/content/img/jsgb-gpu-bg-scrl.png
@@ -142,10 +140,10 @@ namespace SharpBoy.Core
                 byte scrollY = (byte)(Memory[0xFF43]);
                 // Tile data start location
                 ushort bgTileDataAddress = 
-                    (Util.IsBitSet(Memory, ControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
+                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
                 // Tile map start location
                 ushort bgTileMapAddress = 
-                    (Util.IsBitSet(Memory, ControlAddress, 3)) ? (ushort)0x9800 : (ushort)0x9C00;
+                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 3)) ? (ushort)0x9800 : (ushort)0x9C00;
                 // 16 bytes per tile
                 const int TileSize = 16;
                 
@@ -189,11 +187,6 @@ namespace SharpBoy.Core
                     // Least significant bits are swapped compared to the array containing the screen data
                     // e.g. graphicsIndex 0 is equal to bit 7
                     ScreenData[graphicsIndex] = GetColor(colorValue);
-
-                    //for (int j = 7 - tileX; j >= 0; j--)
-                    //{
-                    //    break;
-                    //}
                 }
             }
         }
@@ -201,7 +194,7 @@ namespace SharpBoy.Core
         private void RenderWindow()
         {
             // Is the window display enabled?
-            if (Util.IsBitSet(Memory, ControlAddress, 5))
+            if (Util.IsBitSet(Memory, Util.LcdControlAddress, 5))
             {
                 
             }
@@ -210,7 +203,7 @@ namespace SharpBoy.Core
         private void RenderSprites()
         {
             // Is the sprite display enabled?
-            if (Util.IsBitSet(Memory, ControlAddress, 1))
+            if (Util.IsBitSet(Memory, Util.LcdControlAddress, 1))
             {
 
             }

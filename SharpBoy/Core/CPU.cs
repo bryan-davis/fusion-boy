@@ -62,8 +62,6 @@ namespace SharpBoy.Core
                 Memory = CreateMBC(CartInfo.CartType, fileStream);
             }
             Memory.UpdateTimerHandler += HandleTimerUpdate;
-            Memory.InterruptEnableHandler += HandleInterruptEnable;
-            Memory.InterruptRequestHandler += HandleInterruptRequest;
             Reset();
         }
 
@@ -73,7 +71,6 @@ namespace SharpBoy.Core
             return value;
         }
 
-        // TODO: Verify correct endianess is used
         public ushort ReadNextTwoValues()
         {
             byte low = Memory[ProgramCounter++];
@@ -112,8 +109,8 @@ namespace SharpBoy.Core
             Memory[0xFF44] = 0; // LCDC Y coordinate
 
             // Reset the mode to 01 http://problemkaputt.de/pandocs.htm#lcdstatusregister
-            Util.ClearBits(Memory, 0xFF41, 0, 1);
-            Util.SetBits(Memory, 0xFF41, 0);
+            Util.ClearBits(Memory, Util.LcdStatAddress, 0, 1);
+            Util.SetBits(Memory, Util.LcdStatAddress, 0);
         }
 
         /*
@@ -132,15 +129,15 @@ namespace SharpBoy.Core
                 TimerCycles += cycleCount;
                 if (TimerCycles >= TimerCycleIncrement)
                 {
-                    int result = Memory[0xFF05] + 1;
+                    int result = Memory[Util.TimerCounterAddress] + 1;
                     if (result > 255)
                     {
-                        Memory[0xFF05] = Memory[0xFF06];
-                        Interrupts.TimerRequested = true;
+                        Memory[Util.TimerCounterAddress] = Memory[Util.TimerModuloAddress];
+                        Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);                    
                     }
                     else
                     {
-                        Memory[0xFF05] = (byte)result;
+                        Memory[Util.TimerCounterAddress] = (byte)result;
                     }                    
                     TimerCycles = 0;
                 } 
@@ -157,7 +154,6 @@ namespace SharpBoy.Core
          */
         public void HandleTimerUpdate(byte value)
         {
-            //Debug.WriteLine("Timer handler triggered");
             TimerEnabled = Util.IsBitSet(value, 2);
 
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
@@ -177,36 +173,6 @@ namespace SharpBoy.Core
             }
         }
 
-        /*
-         * Bit 0: V-Blank 
-         * Bit 1: LCD STAT
-         * Bit 2: Timer     
-         * Bit 4: Joypad  
-         */
-        public void HandleInterruptEnable(byte value)
-        {
-            //Debug.WriteLine("Interrupt enable handler triggered");
-            Interrupts.VBlankEnabled = Util.IsBitSet(value, 0);
-            Interrupts.LCDStatusEnabled = Util.IsBitSet(value, 1);
-            Interrupts.TimerEnabled = Util.IsBitSet(value, 2);
-            Interrupts.JoypadEnabled = Util.IsBitSet(value, 4);
-        }
-
-        /*
-         * Bit 0: V-Blank 
-         * Bit 1: LCD STAT
-         * Bit 2: Timer     
-         * Bit 4: Joypad  
-         */
-        public void HandleInterruptRequest(byte value)
-        {
-            //Debug.WriteLine("Interrupt request handler triggered");
-            Interrupts.VBlankRequested = Util.IsBitSet(value, 0);
-            Interrupts.LCDStatusRequested = Util.IsBitSet(value, 1);
-            Interrupts.TimerRequested = Util.IsBitSet(value, 2);
-            Interrupts.JoypadRequested = Util.IsBitSet(value, 4);
-        }
-
         // http://problemkaputt.de/pandocs.htm#interrupts
         public void ProcessInterrupts()
         {
@@ -216,27 +182,32 @@ namespace SharpBoy.Core
                 {
                     ushort addressJump = 0x0000;
 
-                    //Debug.WriteLine(Interrupts);
-
-                    if (Interrupts.VBlankEnabled && Interrupts.VBlankRequested)
+                    byte interruptEnable = Memory[Util.InterruptEnableAddress];
+                    byte interruptFlags = Memory[Util.InterruptFlagAddress];
+                    
+                    if (Util.IsBitSet(interruptEnable, (byte)Interrupts.vBlank) && 
+                        Util.IsBitSet(interruptFlags, (byte)Interrupts.vBlank))
                     {
                         addressJump = 0x0040;
-                        Interrupts.VBlankRequested = false;
+                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.vBlank);
                     }
-                    else if (Interrupts.LCDStatusEnabled && Interrupts.LCDStatusRequested)
+                    else if (Util.IsBitSet(interruptEnable, (byte)Interrupts.lcdStat) &&
+                             Util.IsBitSet(interruptFlags, (byte)Interrupts.lcdStat))
                     {
                         addressJump = 0x0048;
-                        Interrupts.LCDStatusRequested = false;
+                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
                     }
-                    else if (Interrupts.TimerEnabled && Interrupts.TimerRequested)
+                    else if (Util.IsBitSet(interruptEnable, (byte)Interrupts.timer) &&
+                             Util.IsBitSet(interruptFlags, (byte)Interrupts.timer))
                     {
                         addressJump = 0x0050;
-                        Interrupts.TimerRequested = false;
+                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);
                     }
-                    else if (Interrupts.JoypadEnabled && Interrupts.JoypadRequested)
+                    else if (Util.IsBitSet(interruptEnable, (byte)Interrupts.joypad) &&
+                             Util.IsBitSet(interruptFlags, (byte)Interrupts.joypad))
                     {
                         addressJump = 0x0060;
-                        Interrupts.JoypadRequested = false;
+                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.joypad);
                     }
 
                     if (addressJump != 0x0000)
@@ -244,15 +215,16 @@ namespace SharpBoy.Core
                         PushAddressOntoStack(ProgramCounter);
                         ProgramCounter = addressJump;
                         InterruptsEnabled = false;
-                        ProcessInterruptsThisTime = false;
+                        Halted = false;
                     }                                                            
+                    
+                    ProcessInterruptsThisTime = false;
                 }
                 else
                 {
                     // We'll process interrupts after the next op code
                     ProcessInterruptsThisTime = true;
-                }
-                                
+                }                                
             }
         }        
 
@@ -268,7 +240,7 @@ namespace SharpBoy.Core
 
         public void ExecuteOpCode(byte opCode)
         {
-            Debug.WriteLine("OP = {0:x} PC = {1:x} SP = {2:x} SP-Val = {3:x}", opCode, ProgramCounter - 1, StackPointer.Value, Memory[StackPointer.Value]);
+            //Debug.WriteLine("OP = {0:x} PC = {1:x} SP = {2:x} SP-Val = {3:x}", opCode, ProgramCounter - 1, StackPointer.Value, Memory[StackPointer.Value]);
             switch (opCode)
             {
                 case 0x00: // Do nothing
@@ -741,7 +713,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xF2: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + RegisterBC.Low));
                     break;
-                case 0xF3: InterruptsEnabled = false; ProcessInterruptsThisTime = false;  // TODO: Interrupts aren't disabled until after the next op code is processed
+                case 0xF3: InterruptsEnabled = false; ProcessInterruptsThisTime = false;  // Interrupts aren't disabled until after the next op code is processed
                     break;
                 case 0xF5: PushAddressOntoStack(RegisterAF.Value);
                     break;
@@ -755,7 +727,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xFA: LoadMemoryToRegister8Bit(ref RegisterAF.High, ReadNextTwoValues());
                     break;
-                case 0xFB: InterruptsEnabled = true; ProcessInterruptsThisTime = false;   // TODO: Interrupts aren't processed until after the next op code is processed
+                case 0xFB: InterruptsEnabled = true; ProcessInterruptsThisTime = false;   // Interrupts aren't processed until after the next op code is processed
                     break;
                 case 0xFE: CompareWithRegisterA(ReadNextValue());
                     break;
@@ -767,6 +739,7 @@ namespace SharpBoy.Core
         // For all op codes prefixed with 0xCB
         public void ExecuteExtendedOpCode(ushort extended)
         {
+            //Debug.WriteLine("OP = {0:x} PC = {1:x} SP = {2:x} SP-Val = {3:x}", extended >> 8, ProgramCounter - 2, StackPointer.Value, Memory[StackPointer.Value]);
             switch (extended)
             {
                 case 0xCB00: RotateLeftNoCarry(ref RegisterBC.High);

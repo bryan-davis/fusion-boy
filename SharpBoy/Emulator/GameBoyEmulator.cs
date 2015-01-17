@@ -135,12 +135,18 @@ namespace SharpBoy.Emulator
 
                 cpu.HandleTimers(cycles);
                 cpu.UpdateGraphics(cycles);
-                cpu.ProcessInterrupts();
+                cpu.ProcessInterrupts();                 
             }            
         }
 
         private int ExecuteOpCode()
         {
+            if (cpu.Halted)
+            {
+                // Return the HALT op code
+                return 0x76;
+            }
+
             byte opCode = cpu.ReadNextValue();
             int opCodeLookup;
 
