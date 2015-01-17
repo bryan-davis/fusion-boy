@@ -4,30 +4,18 @@
  * Refer to the license.txt file included
  */
 
+using System;
+
 namespace SharpBoy.Core
 {
-    public class Interrupts
+    [Flags]
+    public enum Interrupts : byte
     {
-        // TODO: Re-evaluate
-        // This whole interrupts implementation may cause funniness
-        // depending on how games are reading and writing the interrupt
-        // addesses 0xFF0F and 0xFFFF, given that I don't currently reset
-        // the bits in memory after interrupts have been processed.
-        public bool VBlankEnabled { get; set; }
-        public bool LCDStatusEnabled { get; set; }
-        public bool TimerEnabled { get; set; }
-        public bool JoypadEnabled { get; set; }
-
-        public bool VBlankRequested { get; set; }
-        public bool LCDStatusRequested { get; set; }
-        public bool TimerRequested { get; set; }
-        public bool JoypadRequested { get; set; }
-
-        public override string ToString()
-        {
-            return string.Format("VBlankEnabled = {0}, LCDEnabled = {1}, TimerEnabled = {2}, JoypadEnabled = {3}\n" +
-                "VBlankRequested = {4}, LCDRequested = {5}, TimerRequested = {6}, JoypadRequested = {7}", VBlankEnabled,
-                LCDStatusEnabled, TimerEnabled, JoypadEnabled, VBlankRequested, LCDStatusRequested, TimerRequested, JoypadRequested);            
-        }
+        // Bit positions, not bit values
+        vBlank,
+        lcdStat,
+        timer,
+        serial,
+        joypad
     }
 }

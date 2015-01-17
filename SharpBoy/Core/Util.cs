@@ -11,6 +11,13 @@ namespace SharpBoy.Core
 {
     static class Util
     {
+        public const ushort InterruptEnableAddress = 0xFFFF;    // IE
+        public const ushort InterruptFlagAddress = 0xFF0F;      // IF
+        public const ushort TimerCounterAddress = 0xFF05;       // TIMA
+        public const ushort TimerModuloAddress = 0xFF06;        // TMA
+        public const ushort LcdControlAddress = 0xFF40;         // LCDC
+        public const ushort LcdStatAddress = 0xFF41;            // STAT
+
         public static bool IsBitSet(byte value, byte bit)
         {
             return (value & (1 << bit)) == (1 << bit);

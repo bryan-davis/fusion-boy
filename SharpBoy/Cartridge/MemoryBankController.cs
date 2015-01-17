@@ -26,8 +26,6 @@ namespace SharpBoy.Cartridge
         public bool ExternalRAMEnabled { get; set; }
 
         public event Action<byte> UpdateTimerHandler;
-        public event Action<byte> InterruptEnableHandler;
-        public event Action<byte> InterruptRequestHandler;
 
         protected MemoryBankController(Stream fileStream)
         {            
@@ -85,11 +83,6 @@ namespace SharpBoy.Cartridge
             }
             set
             {
-                //if (0x8000 <= address && address <= 0x9FFF && value != 0)
-                //{
-                //    Debug.WriteLine("{0:X} being written to {1:X}", value, address);
-                //}
-
                 if (IsROM(address) || IsUnsableRegion(address))
                 {
                     return;
@@ -110,20 +103,6 @@ namespace SharpBoy.Cartridge
 
                     if (UpdateTimerHandler != null)
                         UpdateTimerHandler(value);
-                }
-                else if (IsInterruptRequest(address))
-                {
-                    data[address] = value;
-
-                    if (InterruptRequestHandler != null)
-                        InterruptRequestHandler(value);
-                }
-                else if (IsInterruptEnable(address))
-                {
-                    data[address] = value;
-
-                    if (InterruptEnableHandler != null)
-                        InterruptEnableHandler(value);
                 }
                 else if (IsLCDRegister(address))
                 {
@@ -201,16 +180,6 @@ namespace SharpBoy.Cartridge
         protected bool IsTimerControl(int address)
         {
             return address == 0xFF07;
-        }
-
-        protected bool IsInterruptRequest(int address)
-        {
-            return address == 0xFF0F;
-        }
-
-        protected bool IsInterruptEnable(int address)
-        {
-            return address == 0xFFFF;
         }
 
         protected bool IsDMAAddress(int address)
