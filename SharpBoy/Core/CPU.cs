@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace SharpBoy.Core
 {
@@ -181,33 +182,21 @@ namespace SharpBoy.Core
                 if (ProcessInterruptsThisTime)
                 {
                     ushort addressJump = 0x0000;
+                    // Ignore serial interrupts for now
+                    ushort[] jumpTable = { 0x0040, 0x0048, 0x0050, 0x0000, 0x0060 };
 
                     byte interruptEnable = Memory[Util.InterruptEnableAddress];
                     byte interruptFlags = Memory[Util.InterruptFlagAddress];
-                    
-                    if (Util.IsBitSet(interruptEnable, (byte)Interrupts.vBlank) && 
-                        Util.IsBitSet(interruptFlags, (byte)Interrupts.vBlank))
+
+                    foreach (var interrupt in Enum.GetValues(typeof(Interrupts)))
                     {
-                        addressJump = 0x0040;
-                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.vBlank);
-                    }
-                    else if (Util.IsBitSet(interruptEnable, (byte)Interrupts.lcdStat) &&
-                             Util.IsBitSet(interruptFlags, (byte)Interrupts.lcdStat))
-                    {
-                        addressJump = 0x0048;
-                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
-                    }
-                    else if (Util.IsBitSet(interruptEnable, (byte)Interrupts.timer) &&
-                             Util.IsBitSet(interruptFlags, (byte)Interrupts.timer))
-                    {
-                        addressJump = 0x0050;
-                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);
-                    }
-                    else if (Util.IsBitSet(interruptEnable, (byte)Interrupts.joypad) &&
-                             Util.IsBitSet(interruptFlags, (byte)Interrupts.joypad))
-                    {
-                        addressJump = 0x0060;
-                        Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.joypad);
+                        if (Util.IsBitSet(interruptEnable, (byte)interrupt) &&
+                            Util.IsBitSet(interruptFlags, (byte)interrupt))
+                        {
+                            addressJump = jumpTable[(byte)interrupt];
+                            Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)interrupt);
+                            break;
+                        }
                     }
 
                     if (addressJump != 0x0000)
@@ -240,7 +229,7 @@ namespace SharpBoy.Core
 
         public void ExecuteOpCode(byte opCode)
         {
-            //Debug.WriteLine("OP = {0:x} PC = {1:x} SP = {2:x} SP-Val = {3:x}", opCode, ProgramCounter - 1, StackPointer.Value, Memory[StackPointer.Value]);
+            //Log(opCode);
             switch (opCode)
             {
                 case 0x00: // Do nothing
@@ -739,7 +728,7 @@ namespace SharpBoy.Core
         // For all op codes prefixed with 0xCB
         public void ExecuteExtendedOpCode(ushort extended)
         {
-            //Debug.WriteLine("OP = {0:x} PC = {1:x} SP = {2:x} SP-Val = {3:x}", extended >> 8, ProgramCounter - 2, StackPointer.Value, Memory[StackPointer.Value]);
+            //Log(extended);
             switch (extended)
             {
                 case 0xCB00: RotateLeftNoCarry(ref RegisterBC.High);
@@ -1417,5 +1406,30 @@ namespace SharpBoy.Core
             { 0xF3,    4  }, { 0xF5,    16 }, { 0xF6,    8  }, { 0xF7,    32 }, { 0xF8,    12 }, 
             { 0xF9,    8  }, { 0xFA,    16 }, { 0xFB,    4  }, { 0xFE,    8  }, { 0xFF,    32 }
         };
+
+        private void Log(int opCode)
+        {
+            StringBuilder output = new StringBuilder();
+            output.Append(string.Format("OP = 0x{0:X4} ", opCode));
+
+            //int pcVal = ProgramCounter - 1;
+            //if (extendedOp)
+            //    pcVal = ProgramCounter - 2;
+
+            output.Append(string.Format("PC = 0x{0:X4} ", ProgramCounter));
+            output.Append(string.Format("Mem[PC] = 0x{0:X2} ", Memory[ProgramCounter]));
+            output.Append(string.Format("SP = 0x{0:X4} ", StackPointer.Value));
+            output.Append(string.Format("Mem[SP] = 0x{0:X2} ", Memory[StackPointer.Value]));
+            output.Append(string.Format("A = 0x{0:X2} ", RegisterAF.High));
+            output.Append(string.Format("F = 0x{0:X2} ", RegisterAF.Low));
+            output.Append(string.Format("B = 0x{0:X2} ", RegisterBC.High));
+            output.Append(string.Format("C = 0x{0:X2} ", RegisterBC.Low));
+            output.Append(string.Format("D = 0x{0:X2} ", RegisterDE.High));
+            output.Append(string.Format("E = 0x{0:X2} ", RegisterDE.Low));
+            output.Append(string.Format("H = 0x{0:X2} ", RegisterHL.High));
+            output.Append(string.Format("L = 0x{0:X2}", RegisterHL.Low));
+
+            Debug.WriteLine(output.ToString());
+        }
     }
 }
