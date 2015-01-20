@@ -58,14 +58,8 @@ namespace SharpBoy.Core
         private void PushAddressOntoStack(ushort address)
         {
             // High byte first, then low byte.
-            //Memory[StackPointer.Value--] = (byte)(address >> 8);
-            //Memory[StackPointer.Value--] = (byte)(address & 0x00FF);
-            byte high = (byte)(address >> 8);
-            byte low = (byte)(address & 0xFF);
-            StackPointer.Value--;
-            Memory[StackPointer.Value] = high;
-            StackPointer.Value--;
-            Memory[StackPointer.Value] = low;
+            Memory[--StackPointer.Value] = (byte)(address >> 8);
+            Memory[--StackPointer.Value] = (byte)(address & 0x00FF);
         }
 
         private void PopValuesIntoRegister(Register register)
@@ -82,10 +76,8 @@ namespace SharpBoy.Core
             int result = RegisterAF.High + addend;
             ClearAllFlags();
 
-            if (result == 0)
-                SetFlag(FlagZ);
-
-            ClearFlag(FlagN);
+            if ((result & 0xFF) == 0)
+                SetFlag(FlagZ);            
 
             int halfCarryResult = (RegisterAF.High & 0x0F) + (addend & 0x0F);
             if (halfCarryResult > 0x0F)
@@ -658,7 +650,7 @@ namespace SharpBoy.Core
 
         private bool LCDEnabled()
         {
-            return Util.IsBitSet(Memory[0xFF40], 7);
+            return Util.IsBitSet(Memory[Util.LcdControlAddress], 7);
         }
     }
 }

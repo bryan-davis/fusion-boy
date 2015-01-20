@@ -4,6 +4,7 @@
  * Refer to the license.txt file included
  */
 
+using SharpBoy.Core;
 using System;
 using System.IO;
 
@@ -79,7 +80,14 @@ namespace SharpBoy.Cartridge
         { 
             get
             {
-                return data[address];
+                if (address == 0xFF00)
+                {
+                    return GetJoypadInput();
+                }
+                else
+                {
+                    return data[address];
+                }
             }
             set
             {
@@ -129,6 +137,36 @@ namespace SharpBoy.Cartridge
         public void IncrementLCDScanline()
         {
             data[ScanlineAddress]++;
+        }
+
+        // http://problemkaputt.de/pandocs.htm#joypadinput
+        // Joypad input is odd/inverted because 0 means something is selected 
+        // or pressed, instead of 1.
+        protected byte GetJoypadInput()
+        {
+            byte joypad = data[0xFF00];
+            // Invert the bits
+            joypad ^= 0xFF;
+
+            // TODO: Implement proper joypad state
+            byte joypadState = 0xFF;
+
+            // Looking for direction keys
+            if (!Util.IsBitSet(joypad, 4))
+            {
+                byte buttons = (byte)(joypadState >> 4);
+                buttons |= 0xF0;
+                joypad &= buttons;
+            }
+            // Looking for button keys
+            else if (!Util.IsBitSet(joypad, 5))
+            {
+                byte buttons = (byte)(joypadState & 0x0F);
+                buttons |= 0xF0;
+                joypad &= buttons;
+            }
+
+            return joypad;
         }
 
         // http://problemkaputt.de/pandocs.htm#lcdoamdmatransfers

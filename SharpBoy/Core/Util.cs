@@ -17,6 +17,8 @@ namespace SharpBoy.Core
         public const ushort TimerModuloAddress = 0xFF06;        // TMA
         public const ushort LcdControlAddress = 0xFF40;         // LCDC
         public const ushort LcdStatAddress = 0xFF41;            // STAT
+        public const ushort WindowYAddress = 0xFF4A;            // WY        
+        public const ushort WindowXAddress = 0xFF4B;            // WX
 
         public static bool IsBitSet(byte value, byte bit)
         {
