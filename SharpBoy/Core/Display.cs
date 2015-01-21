@@ -21,19 +21,16 @@ namespace SharpBoy.Core
         private readonly byte[] Palette = { 255, 192, 96, 0 };
 
         public MemoryBankController Memory { get; private set; }
-        public Interrupts Interrupts { get; private set; }
         public byte[] ScreenData { get; private set; } 
 
-        public Display(MemoryBankController memory, Interrupts interrupts)
+        public Display(MemoryBankController memory)
         {
-            Memory = memory;
-            Interrupts = interrupts;
-            ScreenData = new byte[Width * Height];                        
+            Memory = memory;            
+            ScreenData = new byte[Width * Height];
         }
 
         public void Render()
         {
-            Memory.IncrementLCDScanline();
             byte currentLine = Memory[0xFF44];
 
             if (currentLine == Height)
@@ -53,6 +50,7 @@ namespace SharpBoy.Core
                 //RenderSprites();
             }
             
+            Memory.IncrementLCDScanline();
         }
 
         // http://problemkaputt.de/pandocs.htm#lcdstatusregister

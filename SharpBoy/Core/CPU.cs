@@ -34,7 +34,6 @@ namespace SharpBoy.Core
         public bool Halted { get; private set; }
         public bool Stopped { get; private set; }
 
-        public Interrupts Interrupts { get; private set; }
         public bool InterruptsEnabled { get; private set; }
         public bool ProcessInterruptsThisTime { get; private set; }
         public bool TimerEnabled { get; private set; }
@@ -188,13 +187,13 @@ namespace SharpBoy.Core
                     byte interruptEnable = Memory[Util.InterruptEnableAddress];
                     byte interruptFlags = Memory[Util.InterruptFlagAddress];
 
-                    foreach (var interrupt in Enum.GetValues(typeof(Interrupts)))
+                    for (byte i = (byte)Interrupts.vBlank; i <= (byte)Interrupts.joypad; i++)
                     {
-                        if (Util.IsBitSet(interruptEnable, (byte)interrupt) &&
-                            Util.IsBitSet(interruptFlags, (byte)interrupt))
+                        if (Util.IsBitSet(interruptEnable, i) &&
+                            Util.IsBitSet(interruptFlags, i))
                         {
-                            addressJump = jumpTable[(byte)interrupt];
-                            Util.ClearBits(Memory, Util.InterruptFlagAddress, (byte)interrupt);
+                            addressJump = jumpTable[i];
+                            Util.ClearBits(Memory, Util.InterruptFlagAddress, i);
                             break;
                         }
                     }
@@ -1258,7 +1257,6 @@ namespace SharpBoy.Core
             ProgramCounter = 0;
             Halted = false;
             Stopped = false;
-            Interrupts = new Interrupts();
             InterruptsEnabled = false;
             TimerEnabled = false;
             TimerCycleIncrement = 0;
@@ -1279,7 +1277,7 @@ namespace SharpBoy.Core
             ProgramCounter = 0x100;
 
             Memory.Reset();
-            Display = new Display(Memory, Interrupts);
+            Display = new Display(Memory);
         }
 
         private MemoryBankController CreateMBC(CartType cartType, Stream fileStream)

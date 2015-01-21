@@ -11,10 +11,10 @@ namespace SharpBoy.Core
     public enum Interrupts : byte
     {
         // Bit positions, not bit values
-        vBlank,
-        lcdStat,
-        timer,
-        serial,
-        joypad
+        vBlank = 0,
+        lcdStat = 1,
+        timer = 2,
+        serial = 3,
+        joypad = 4
     }
 }
