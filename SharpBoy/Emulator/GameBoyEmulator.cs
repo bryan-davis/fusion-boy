@@ -95,22 +95,22 @@ namespace SharpBoy.Emulator
 
         public void KeyUp(System.Windows.Input.Key key)
         {
-            throw new NotImplementedException();
+            
         }
 
         public void KeyDown(System.Windows.Input.Key key)
         {
-            throw new NotImplementedException();
+            
         }
 
         public void LoadState(string saveStateFile)
         {
-            throw new NotImplementedException();
+            
         }
 
         public void SaveState()
         {
-            throw new NotImplementedException();
+            
         }
 
         private void UpdateFrame()
