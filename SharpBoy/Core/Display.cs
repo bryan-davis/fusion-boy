@@ -141,7 +141,7 @@ namespace SharpBoy.Core
                     (Util.IsBitSet(Memory, Util.LcdControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
                 // Tile map start location
                 ushort tileMapAddress = 
-                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 3)) ? (ushort)0x9800 : (ushort)0x9C00;
+                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 3)) ? (ushort)0x9C00 : (ushort)0x9800;
                 // 16 bytes per tile
                 const int TileSize = 16;
                 
@@ -210,7 +210,7 @@ namespace SharpBoy.Core
                     (Util.IsBitSet(Memory, Util.LcdControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
                 // Tile map start location
                 ushort tileMapAddress =
-                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 6)) ? (ushort)0x9800 : (ushort)0x9C00;
+                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 6)) ? (ushort)0x9C00 : (ushort)0x9800;
                 // 16 bytes per tile
                 const int TileSize = 16;
 
