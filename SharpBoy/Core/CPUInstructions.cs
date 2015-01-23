@@ -310,36 +310,44 @@ namespace SharpBoy.Core
 
         // This link contains the best explanation of this instruction that I could find.
         // http://www.worldofspectrum.org/faq/reference/z80reference.htm#DAA
+        // Unfortunately, the implementation is a bit different from the above link; it was
+        // the only way I could get the Blargg 01-special test to pass.
         private void DecimalAdjustRegisterA()
         {
-            byte value = RegisterAF.High;
             // Correction will result in either 0x00, 0x06, 0x60, or 0x66
-            byte correction = 0x00;
-
-            if (value > 0x99 || IsFlagSet(FlagC))
-            {
-                correction |= (0x06 << 4);
-                SetFlag(FlagC);
-            }
-            else           
-                ClearFlag(FlagC);            
-
-            if ((value & 0x0F) > 0x09 || IsFlagSet(FlagH))            
-                correction |= 0x06;
+            short value = RegisterAF.High;
 
             if (IsFlagSet(FlagN))
-                RegisterAF.High -= correction;
-            else
-                RegisterAF.High += correction;
+            {
+                if (IsFlagSet(FlagH))
+                    value -= 0x06;
 
-            if (RegisterAF.High == 0)
-                SetFlag(FlagZ);
+                if (IsFlagSet(FlagC))
+                    value -= 0x60;
+            }
             else
-                ClearFlag(FlagZ);
+            {
+                // Lower 4 bits are greater than 9
+                if ((value & 0x0F) > 0x09 || IsFlagSet(FlagH))
+                    value += 0x06;
 
-            // Per pandocs and the Game Boy CPU manual, flag H is reset,
-            // which differs from typical Z80 operation according to the link above.
+                // Upper 4 bits are greater than 9
+                if ((value >> 4) > 0x09 || IsFlagSet(FlagC))
+                    value += 0x60;
+            }
+
             ClearFlag(FlagH);
+            ClearFlag(FlagZ);
+
+            if (value > 0xFF)
+                SetFlag(FlagC);
+
+            value &= 0xFF;
+
+            if (value == 0)
+                SetFlag(FlagZ);
+
+            RegisterAF.High = (byte)value;
         }
 
         private void ComplementRegisterA()

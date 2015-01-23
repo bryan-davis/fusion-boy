@@ -697,7 +697,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xF0: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + ReadNextValue()));
                     break;
-                case 0xF1: PopValuesIntoRegister(RegisterAF);
+                case 0xF1: PopValuesIntoRegister(RegisterAF); RegisterAF.Low &= 0xF0;   // Bottom 4 bits of flags are never used; clear them
                     break;
                 case 0xF2: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + RegisterBC.Low));
                     break;
