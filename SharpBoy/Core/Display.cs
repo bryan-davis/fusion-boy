@@ -159,7 +159,10 @@ namespace SharpBoy.Core
                     ushort tileNumber = (ushort)Util.Convert2dTo1d((scrollX + i) / 8, (scrollY + line) / 8, 32);
 
                     // Calculate the index which contains yet another index that points to where the tile data is
-                    short tileDisplayIndex = Memory[tileMapAddress + tileNumber];                    
+                    short tileDisplayIndex = Memory[tileMapAddress + tileNumber];
+                    // If the map offset is 128, then the index is a signed number
+                    if (mapOffset == 128)
+                        tileDisplayIndex = (sbyte)tileDisplayIndex;
 
                     // Calculate where the start of the tile data is in memory
                     int tileStartIndex = tileDataAddress + ((tileDisplayIndex + mapOffset) * TileSize);
