@@ -267,7 +267,6 @@ namespace SharpBoy.Core
         {
             sbyte value = (sbyte)ReadNextValue();
             int result = StackPointer.Value + value;
-            StackPointer.Value = (ushort)result;
             ClearAllFlags();
 
             // Set the carry flag if there was an overflow
@@ -278,6 +277,8 @@ namespace SharpBoy.Core
             int halfCarryResult = (StackPointer.Value & 0x0F) + (value & 0x0F);
             if (halfCarryResult > 0x0F)
                 SetFlag(FlagH);
+            
+            StackPointer.Value = (ushort)result;
         }
 
         private void SwapNibbles(ref byte register)
