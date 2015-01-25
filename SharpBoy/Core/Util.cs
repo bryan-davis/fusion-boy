@@ -19,6 +19,9 @@ namespace SharpBoy.Core
         public const ushort LcdStatAddress = 0xFF41;            // STAT
         public const ushort WindowYAddress = 0xFF4A;            // WY        
         public const ushort WindowXAddress = 0xFF4B;            // WX
+        public const ushort ScrollYAddress = 0xFF42;            // SCY        
+        public const ushort ScrollXAddress = 0xFF43;            // SCX
+        public const ushort ScanlineAddress = 0xFF44;           // LY
 
         public static bool IsBitSet(byte value, byte bit)
         {

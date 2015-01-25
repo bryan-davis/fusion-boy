@@ -16,6 +16,8 @@ namespace SharpBoy.Core
         private const int Mode0Bounds = 204;
         private const int Mode2Bounds = 80;
         private const int Mode3Bounds = 172;
+        private const int TileSize = 16;    // 16 bytes per tile
+        private const int ScrollMaxSize = 256;
 
         // Black, Dark Grey, Light Grey, White
         private readonly byte[] Palette = { 255, 192, 96, 0 };
@@ -31,7 +33,7 @@ namespace SharpBoy.Core
 
         public void Render()
         {
-            byte currentLine = Memory[0xFF44];
+            byte currentLine = Memory[Util.ScanlineAddress];
 
             if (currentLine == Height)
             {
@@ -40,14 +42,14 @@ namespace SharpBoy.Core
 
             if (currentLine > 153)
             {
-                Memory[0xFF44] = 0;
+                Memory[Util.ScanlineAddress] = 0;
             }
 
             if (currentLine < Height)
             {
-                RenderBackground();
-                //RenderWindow();
-                //RenderSprites();
+                RenderBackground(currentLine);
+                RenderWindow(currentLine);
+                RenderSprites(currentLine);
             }
             
             Memory.IncrementLCDScanline();
@@ -127,36 +129,33 @@ namespace SharpBoy.Core
             }
         }
 
-        private void RenderBackground()
+        private void RenderBackground(int line)
         {
             // Is the background display enabled?
             if (Util.IsBitSet(Memory, Util.LcdControlAddress, 0))
             {
                 // A nice visualization of the scrollX and scrollY values
                 // http://imrannazar.com/content/img/jsgb-gpu-bg-scrl.png
-                byte scrollX = (byte)(Memory[0xFF42]);
-                byte scrollY = (byte)(Memory[0xFF43]);
+                byte scrollX = (byte)(Memory[Util.ScrollXAddress]);
+                byte scrollY = (byte)(Memory[Util.ScrollYAddress]);
                 // Tile data start location
                 ushort tileDataAddress = 
                     (Util.IsBitSet(Memory, Util.LcdControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
                 // Tile map start location
                 ushort tileMapAddress = 
-                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 3)) ? (ushort)0x9C00 : (ushort)0x9800;
-                // 16 bytes per tile
-                const int TileSize = 16;
+                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 3)) ? (ushort)0x9C00 : (ushort)0x9800;                
                 
-                int mapOffset = 0;
-                // Tiles are mapped with signed bytes (-128, 127), so they need to be offset by 128
-                if (tileDataAddress == 0x8800)
-                    mapOffset = 128;
+                // Tiles are mapped with signed bytes (-128, 127), when the data
+                // address is 0x8800, so they need to be offset by 128.
+                int mapOffset = (tileDataAddress == 0x8800) ? 128 : 0;
 
-                int line = Memory[0xFF44];
+                int y = (scrollY + line) % ScrollMaxSize;
                 for (int i = 0; i < Width; i++)
                 {
+                    int x = (scrollX + i) % ScrollMaxSize;
                     // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen
                     // Calculates which tile map we should retrieve
-                    // (((scrollY / 8) * 32) + (scrollX / 8));
-                    ushort tileNumber = (ushort)Util.Convert2dTo1d((scrollX + i) / 8, (scrollY + line) / 8, 32);
+                    ushort tileNumber = (ushort)Util.Convert2dTo1d(x / 8, y / 8, 32);
 
                     // Calculate the index which contains yet another index that points to where the tile data is
                     short tileDisplayIndex = Memory[tileMapAddress + tileNumber];
@@ -179,9 +178,8 @@ namespace SharpBoy.Core
 
                     ushort graphicsIndex = (ushort)Util.Convert2dTo1d(i, line, Width);
 
-                    byte colorValue = 0;
                     // Calculate the low bit
-                    colorValue |= (byte)((byte1 >> (7 - tileX)) & 1);
+                    byte colorValue = (byte)((byte1 >> (7 - tileX)) & 1);
                     // Calculate the high bit
                     colorValue |= (byte)(((byte2 >> (7 - tileX)) & 1) << 1);
 
@@ -192,19 +190,16 @@ namespace SharpBoy.Core
             }
         }
 
-        private void RenderWindow()
+        private void RenderWindow(int line)
         {
             // Is the window display enabled?
             if (Util.IsBitSet(Memory, Util.LcdControlAddress, 5))
             {                
                 byte windowX = (byte)(Memory[Util.WindowXAddress] - 7);
                 byte windowY = (byte)(Memory[Util.WindowYAddress]);
-                int line = Memory[0xFF44];
 
                 if (windowY > line)
-                {
                     return;
-                }
 
                 int y = line - windowY;
 
@@ -237,6 +232,9 @@ namespace SharpBoy.Core
 
                     // Calculate the index which contains yet another index that points to where the tile data is
                     short tileDisplayIndex = Memory[tileMapAddress + tileNumber];
+                    // If the map offset is 128, then the index is a signed number
+                    if (mapOffset == 128)
+                        tileDisplayIndex = (sbyte)tileDisplayIndex;
 
                     // Calculate where the start of the tile data is in memory
                     int tileStartIndex = tileDataAddress + ((tileDisplayIndex + mapOffset) * TileSize);
@@ -267,10 +265,8 @@ namespace SharpBoy.Core
         }
 
         // http://problemkaputt.de/pandocs.htm#vramspriteattributetableoam
-        private void RenderSprites()
+        private void RenderSprites(int line)
         {
-            return;
-
             // Is the sprite display enabled?
             if (Util.IsBitSet(Memory, Util.LcdControlAddress, 1))
             {
