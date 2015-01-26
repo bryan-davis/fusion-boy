@@ -193,21 +193,23 @@ namespace SharpBoy.Core
             HandleDecrementFlags(Memory[address]);
         }
 
+        // Without random forum posts like these, we'd be lost...
+        // http://forums.nesdev.com/viewtopic.php?p=42143&sid=c43232c8909ba277476955fd1e11db67#p42143
         private void LoadStackPointerToRegisterHL()
         {
-            sbyte value = (sbyte)ReadNextValue();
-            int result = StackPointer.Value + value;
-            RegisterHL.Value = (ushort)result;
+            byte value = ReadNextValue();
             ClearAllFlags();
 
-            // Set the carry flag if there was an overflow
-            if (result > 0xFFFF)
+            // Set the carry flag if there was an overflow on the lower byte
+            if ((StackPointer.Low + value) > 0xFF)
                 SetFlag(FlagC);
 
             // Set the half carry flag if there was an overflow in the lower 4 bits
             int halfCarryResult = (StackPointer.Value & 0x0F) + (value & 0x0F);
             if (halfCarryResult > 0x0F)
                 SetFlag(FlagH);
+
+            RegisterHL.Value = (ushort)(StackPointer.Value + (sbyte)value);
         }
 
         private void HandleIncrementFlags(byte value)
@@ -263,14 +265,15 @@ namespace SharpBoy.Core
             RegisterHL.Value = (ushort)result;
         }
 
+        // Without random forum posts like these, we'd be lost...
+        // http://forums.nesdev.com/viewtopic.php?p=42143&sid=c43232c8909ba277476955fd1e11db67#p42143
         private void AddValueToStackPointer()
         {
-            sbyte value = (sbyte)ReadNextValue();
-            int result = StackPointer.Value + value;
+            byte value = ReadNextValue();
             ClearAllFlags();
 
-            // Set the carry flag if there was an overflow
-            if (result > 0xFFFF)
+            // Set the carry flag if there was an overflow on the lower byte
+            if ((StackPointer.Low + value) > 0xFF)
                 SetFlag(FlagC);
 
             // Set the half carry flag if there was an overflow in the lower 4 bits
@@ -278,7 +281,7 @@ namespace SharpBoy.Core
             if (halfCarryResult > 0x0F)
                 SetFlag(FlagH);
             
-            StackPointer.Value = (ushort)result;
+            StackPointer.Value = (ushort)(StackPointer.Value + (sbyte)value);
         }
 
         private void SwapNibbles(ref byte register)
