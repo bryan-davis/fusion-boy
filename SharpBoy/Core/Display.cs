@@ -153,35 +153,31 @@ namespace SharpBoy.Core
                 for (int i = 0; i < Width; i++)
                 {
                     int x = (scrollX + i) % ScrollMaxSize;
-                    // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen
-                    // Calculates which tile map we should retrieve
+                    // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen.
+                    // Calculates which tile map we should retrieve.
                     ushort tileNumber = (ushort)Util.Convert2dTo1d(x / 8, y / 8, 32);
 
-                    // Calculate the index which contains yet another index that points to where the tile data is
+                    // Calculate the index which contains yet another index 
+                    // that points to where the tile data is.
                     short tileDisplayIndex = Memory[tileMapAddress + tileNumber];
-                    // If the map offset is 128, then the index is a signed number
+                    // If the map offset is 128, then the index is a signed number.
                     if (mapOffset == 128)
                         tileDisplayIndex = (sbyte)tileDisplayIndex;
 
-                    // Calculate where the start of the tile data is in memory
+                    // Calculate where the start of the tile data is in memory.
                     int tileStartIndex = tileDataAddress + ((tileDisplayIndex + mapOffset) * TileSize);
 
                     // Which column of the tile do we need to address in memory?
                     int tileX = (scrollX + i) % 8;
-                    // Which line of the tile do we need to address in memory?
+                    // Which row of the tile do we need to address in memory?
                     int tileY = (scrollY + line) % 8;
 
-                    //int tilePixelOffset = Util.Convert2dTo1d(tileX, tileY, 8);
                     int tileLineOffset = tileY * 2;
                     byte byte1 = Memory[tileStartIndex + tileLineOffset];
                     byte byte2 = Memory[tileStartIndex + tileLineOffset + 1];
 
                     ushort graphicsIndex = (ushort)Util.Convert2dTo1d(i, line, Width);
-
-                    // Calculate the low bit
-                    byte colorValue = (byte)((byte1 >> (7 - tileX)) & 1);
-                    // Calculate the high bit
-                    colorValue |= (byte)(((byte2 >> (7 - tileX)) & 1) << 1);
+                    byte colorValue = GetColorValue(byte1, byte2, tileX);
 
                     // Least significant bits are swapped compared to the array containing the screen data
                     // e.g. graphicsIndex 0 is equal to bit 7
@@ -198,6 +194,8 @@ namespace SharpBoy.Core
                 byte windowX = (byte)(Memory[Util.WindowXAddress] - 7);
                 byte windowY = (byte)(Memory[Util.WindowYAddress]);
 
+                // Window rendering may be further down the screen than the
+                // scanline we're rendering.
                 if (windowY > line)
                     return;
 
@@ -209,26 +207,19 @@ namespace SharpBoy.Core
                 // Tile map start location
                 ushort tileMapAddress =
                     (Util.IsBitSet(Memory, Util.LcdControlAddress, 6)) ? (ushort)0x9C00 : (ushort)0x9800;
-                // 16 bytes per tile
-                const int TileSize = 16;
 
-                int mapOffset = 0;
-                // Tiles are mapped with signed bytes (-128, 127), so they need to be offset by 128
-                if (tileDataAddress == 0x8800)
-                    mapOffset = 128;
+                // Tiles are mapped with signed bytes (-128, 127), when the data
+                // address is 0x8800, so they need to be offset by 128.
+                int mapOffset = (tileDataAddress == 0x8800) ? 128 : 0;
 
                 for (int i = 0; i < Width; i++)
                 {
-                    int x = windowX + i;
-                    if (i > windowX)
-                    {
-                        x = i - windowX;
-                    }
+                    int x = (i > windowX) ? i - windowX : windowX + i;
 
                     // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen
                     // Calculates which tile map we should retrieve
                     // (((windowY / 8) * 32) + (windowX / 8));
-                    ushort tileNumber = (ushort)Util.Convert2dTo1d((x) / 8, (y) / 8, 32);
+                    ushort tileNumber = (ushort)Util.Convert2dTo1d(x / 8, y / 8, 32);
 
                     // Calculate the index which contains yet another index that points to where the tile data is
                     short tileDisplayIndex = Memory[tileMapAddress + tileNumber];
@@ -240,9 +231,9 @@ namespace SharpBoy.Core
                     int tileStartIndex = tileDataAddress + ((tileDisplayIndex + mapOffset) * TileSize);
 
                     // Which column of the tile do we need to address in memory?
-                    int tileX = (x) % 8;
+                    int tileX = x % 8;
                     // Which line of the tile do we need to address in memory?
-                    int tileY = (y) % 8;
+                    int tileY = y % 8;
 
                     //int tilePixelOffset = Util.Convert2dTo1d(tileX, tileY, 8);
                     int tileLineOffset = tileY * 2;
@@ -250,12 +241,7 @@ namespace SharpBoy.Core
                     byte byte2 = Memory[tileStartIndex + tileLineOffset + 1];
 
                     ushort graphicsIndex = (ushort)Util.Convert2dTo1d(i, line, Width);
-
-                    byte colorValue = 0;
-                    // Calculate the low bit
-                    colorValue |= (byte)((byte1 >> (7 - tileX)) & 1);
-                    // Calculate the high bit
-                    colorValue |= (byte)(((byte2 >> (7 - tileX)) & 1) << 1);
+                    byte colorValue = GetColorValue(byte1, byte2, tileX);
 
                     // Least significant bits are swapped compared to the array containing the screen data
                     // e.g. graphicsIndex 0 is equal to bit 7
@@ -279,6 +265,19 @@ namespace SharpBoy.Core
                     byte xPosition = Memory[oamAddress + i + 1];
                 }
             }
+        }
+
+        // Calculates which color index to use in the color palette for a 
+        // particular pixel.
+        private byte GetColorValue(byte byte1, byte byte2, int tileColumn)
+        {
+            byte colorValue = 0;
+            // Calculate the low bit
+            colorValue |= (byte)((byte1 >> (7 - tileColumn)) & 1);
+            // Calculate the high bit
+            colorValue |= (byte)(((byte2 >> (7 - tileColumn)) & 1) << 1);
+
+            return colorValue;
         }
 
         // Palettes can be altered by a game
