@@ -34,8 +34,6 @@ namespace SharpBoy.Core
         public bool Halted { get; private set; }
         public bool Stopped { get; private set; }
 
-        public bool InterruptsEnabled { get; private set; }
-        public bool ProcessInterruptsThisTime { get; private set; }
         public bool TimerEnabled { get; private set; }
         public int TimerCycleIncrement { get; private set; }
         public int TimerCycles { get; private set; }
@@ -48,6 +46,8 @@ namespace SharpBoy.Core
         private const int ScreenRefreshRate = 70224;    // Screen refresh is every 70,224 cycles
         private const int CyclesPerScanline = 456;
         private int scanlineCycleCounter;
+
+        private Queue<bool> interruptQueue;
 
         public CPU() { }
 
@@ -129,7 +129,7 @@ namespace SharpBoy.Core
                 TimerCycles += cycleCount;
                 if (TimerCycles >= TimerCycleIncrement)
                 {
-                    int result = Memory[Util.TimerCounterAddress] + 1;
+                    int result = Memory[Util.TimerCounterAddress] +1;
                     if (result > 255)
                     {
                         Memory[Util.TimerCounterAddress] = Memory[Util.TimerModuloAddress];
@@ -176,43 +176,44 @@ namespace SharpBoy.Core
         // http://problemkaputt.de/pandocs.htm#interrupts
         public void ProcessInterrupts()
         {
-            if (InterruptsEnabled)
+            if (interruptQueue.Count > 0 && interruptQueue.Dequeue() == true)
             {
-                if (ProcessInterruptsThisTime)
+                ushort addressJump = 0x0000;
+                // Ignore serial interrupts for now
+                ushort[] jumpTable = { 0x0040, 0x0048, 0x0050, 0x0058, 0x0060 };
+
+                byte interruptEnable = Memory[Util.InterruptEnableAddress];
+                byte interruptFlags = Memory[Util.InterruptFlagAddress];
+
+                for (byte i = (byte)Interrupts.vBlank; i <= (byte)Interrupts.joypad; i++)
                 {
-                    ushort addressJump = 0x0000;
-                    // Ignore serial interrupts for now
-                    ushort[] jumpTable = { 0x0040, 0x0048, 0x0050, 0x0000, 0x0060 };
-
-                    byte interruptEnable = Memory[Util.InterruptEnableAddress];
-                    byte interruptFlags = Memory[Util.InterruptFlagAddress];
-
-                    for (byte i = (byte)Interrupts.vBlank; i <= (byte)Interrupts.joypad; i++)
+                    if (Util.IsBitSet(interruptEnable, i) && Util.IsBitSet(interruptFlags, i))
                     {
-                        if (Util.IsBitSet(interruptEnable, i) &&
-                            Util.IsBitSet(interruptFlags, i))
+                        addressJump = jumpTable[i];
+                        // Based on results from the Blargg test ROMs, interrupt 
+                        // flags are only cleared when not in a Halted state.
+                        if (!Halted)
                         {
-                            addressJump = jumpTable[i];
                             Util.ClearBits(Memory, Util.InterruptFlagAddress, i);
-                            break;
                         }
+                        break;
                     }
+                }
 
-                    if (addressJump != 0x0000)
-                    {
-                        PushAddressOntoStack(ProgramCounter);
-                        ProgramCounter = addressJump;
-                        InterruptsEnabled = false;
-                        Halted = false;
-                    }                                                            
-                    
-                    ProcessInterruptsThisTime = false;
+                if (addressJump != 0x0000)
+                {
+                    PushAddressOntoStack(ProgramCounter);
+                    ProgramCounter = addressJump;
+                    interruptQueue.Clear();
+                    Halted = false;
                 }
                 else
                 {
-                    // We'll process interrupts after the next op code
-                    ProcessInterruptsThisTime = true;
-                }                                
+                    // Continue processing interrupts on the next loop,
+                    // until interrupts are disabled completely.
+                    if (interruptQueue.Count == 0)
+                        interruptQueue.Enqueue(true);
+                }        
             }
         }        
 
@@ -467,7 +468,7 @@ namespace SharpBoy.Core
                     break;                             
                 case 0x75: LoadValueToMemory8Bit(RegisterHL.Value, RegisterHL.Low);
                     break;
-                case 0x76: Halted = true;
+                case 0x76: Halt();
                     break;
                 case 0x77: LoadValueToMemory8Bit(RegisterHL.Value, RegisterAF.High);
                     break;
@@ -701,7 +702,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xF2: LoadMemoryToRegister8Bit(ref RegisterAF.High, (ushort)(0xFF00 + RegisterBC.Low));
                     break;
-                case 0xF3: InterruptsEnabled = false; ProcessInterruptsThisTime = false;  // Interrupts aren't disabled until after the next op code is processed
+                case 0xF3: DisableInterrupts();
                     break;
                 case 0xF5: PushAddressOntoStack(RegisterAF.Value);
                     break;
@@ -715,7 +716,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xFA: LoadMemoryToRegister8Bit(ref RegisterAF.High, ReadNextTwoValues());
                     break;
-                case 0xFB: InterruptsEnabled = true; ProcessInterruptsThisTime = false;   // Interrupts aren't processed until after the next op code is processed
+                case 0xFB: EnableInterrupts();
                     break;
                 case 0xFE: CompareWithRegisterA(ReadNextValue());
                     break;
@@ -1257,7 +1258,6 @@ namespace SharpBoy.Core
             ProgramCounter = 0;
             Halted = false;
             Stopped = false;
-            InterruptsEnabled = false;
             TimerEnabled = false;
             TimerCycleIncrement = 0;
             TimerCycles = 0;
@@ -1278,6 +1278,7 @@ namespace SharpBoy.Core
 
             Memory.Reset();
             Display = new Display(Memory);
+            interruptQueue = new Queue<bool>();
         }
 
         private MemoryBankController CreateMBC(CartType cartType, Stream fileStream)

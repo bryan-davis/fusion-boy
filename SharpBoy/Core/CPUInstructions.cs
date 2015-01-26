@@ -632,8 +632,26 @@ namespace SharpBoy.Core
         private void ReturnAndEnableInterrupts()
         {
             Return();
-            InterruptsEnabled = true;
-            ProcessInterruptsThisTime = true;
+            interruptQueue.Clear();
+            interruptQueue.Enqueue(true);
+        }
+
+        private void EnableInterrupts()
+        {
+            interruptQueue.Clear();
+            // Interrupts aren't processed until after the next op code is processed,
+            // which is why we push false and then true.
+            interruptQueue.Enqueue(false);
+            interruptQueue.Enqueue(true);
+        }
+
+        private void DisableInterrupts()
+        {
+            interruptQueue.Clear();
+            // Interrupts aren't disabled until after the next op code is processed,
+            // which is why we push true and then false.
+            interruptQueue.Enqueue(true);
+            interruptQueue.Enqueue(false);
         }
 
         private void ClearAllFlags()
@@ -660,6 +678,14 @@ namespace SharpBoy.Core
         private bool LCDEnabled()
         {
             return Util.IsBitSet(Memory[Util.LcdControlAddress], 7);
+        }
+
+
+        private void Halt()
+        {
+            Halted = true;
+            if (interruptQueue.Count == 0)
+                interruptQueue.Enqueue(true);
         }
     }
 }
