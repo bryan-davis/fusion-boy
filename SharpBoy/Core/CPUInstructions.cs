@@ -70,16 +70,20 @@ namespace SharpBoy.Core
 
         private void AddValueToRegisterA(byte value, bool addCarryFlag = false)
         {
-            byte addend = value;
+            int result = RegisterAF.High + value;
+            int halfCarryResult = (RegisterAF.High & 0x0F) + (value & 0x0F);
+            
             if (addCarryFlag && IsFlagSet(FlagC))
-                addend++;   // It's okay for this to overflow to 0
-            int result = RegisterAF.High + addend;
+            {
+                result++;
+                halfCarryResult++;
+            }
+            
             ClearAllFlags();
 
             if ((result & 0xFF) == 0)
                 SetFlag(FlagZ);            
 
-            int halfCarryResult = (RegisterAF.High & 0x0F) + (addend & 0x0F);
             if (halfCarryResult > 0x0F)
                 SetFlag(FlagH);
 
@@ -91,18 +95,21 @@ namespace SharpBoy.Core
 
         private void SubtractValueFromRegisterA(byte value, bool subCarryFlag = false)
         {
-            byte subtrahend = value;
+            int result = RegisterAF.High - value;
+            int halfCarryResult = (RegisterAF.High & 0x0F) - (value & 0x0F);
             if (subCarryFlag && IsFlagSet(FlagC))
-                subtrahend++;   // It's okay for this to overflow to 0
-            int result = RegisterAF.High - subtrahend;
+            {
+                result--;
+                halfCarryResult--;
+            }
+
             ClearAllFlags();
 
-            if (result == 0)
+            if ((result & 0xFF) == 0)
                 SetFlag(FlagZ);
 
             SetFlag(FlagN);
 
-            int halfCarryResult = (RegisterAF.High & 0x0F) - (subtrahend & 0x0F);
             if (halfCarryResult < 0)
                 SetFlag(FlagH);
 
