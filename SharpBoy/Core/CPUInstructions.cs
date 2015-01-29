@@ -150,19 +150,17 @@ namespace SharpBoy.Core
 
         private void CompareWithRegisterA(byte value)
         {
-            int result = RegisterAF.High - value;
             ClearAllFlags();
 
-            if (result == 0)
+            if (RegisterAF.High == value)
                 SetFlag(FlagZ);
 
             SetFlag(FlagN);
 
-            int halfCarryResult = (RegisterAF.High & 0x0F) - (value & 0x0F);
-            if (halfCarryResult < 0)
+            if ((RegisterAF.High & 0x0F) < (value & 0x0F))
                 SetFlag(FlagH);
 
-            if (result < 0)
+            if (RegisterAF.High < value)
                 SetFlag(FlagC);
         }
 
