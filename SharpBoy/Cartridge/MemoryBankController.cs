@@ -16,14 +16,13 @@ namespace SharpBoy.Cartridge
     {
         protected const int MemorySize = 0x10000; // 65536 - 64K
         protected const int DividerAddress = 0xFF04;
-        protected const int ScanlineAddress = 0xFF44;
         protected byte[] data;
         protected byte[] cartridge;
         
         public byte CurrentROMBank { get; set; }
         public byte CurrentRAMBank { get; set; }
-        public bool InROMBankMode { get; set; }
-        public bool ExternalRAMEnabled { get; set; }
+        public bool InRomBankMode { get; set; }
+        public bool ExternalRamEnabled { get; set; }
 
         public event Action<byte> UpdateTimerHandler;
 
@@ -135,7 +134,7 @@ namespace SharpBoy.Cartridge
 
         public void IncrementLCDScanline()
         {
-            data[ScanlineAddress]++;
+            data[Util.ScanlineAddress]++;
         }
 
         // http://problemkaputt.de/pandocs.htm#joypadinput
@@ -194,6 +193,11 @@ namespace SharpBoy.Cartridge
             return 0x2000 <= address && address <= 0x3FFF;
         }
 
+        protected bool IsRamEnableRegion(int address)
+        {
+            return 0x0000 <= address && address <= 0x1FFF;
+        }
+
         protected bool IsUnsableRegion(int address)
         {
             return 0xFEA0 <= address && address <= 0xFEFF;
@@ -211,7 +215,7 @@ namespace SharpBoy.Cartridge
 
         protected bool IsLCDRegister(int address)
         {
-            return address == ScanlineAddress;
+            return address == Util.ScanlineAddress;
         }
 
         protected bool IsTimerControl(int address)

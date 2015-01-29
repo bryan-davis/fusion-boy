@@ -25,7 +25,7 @@ namespace SharpBoy.Cartridge
                     int offsetAddress = address - 0x4000;
                     int bankAddress = offsetAddress + (CurrentROMBank * 0x4000);
                     return cartridge[bankAddress];
-                }
+                }                
                 else
                 {
                     return base[address];
@@ -33,7 +33,14 @@ namespace SharpBoy.Cartridge
             }
             set
             {
-                base[address] = value;
+                if (IsRamEnableRegion(address))
+                {
+                    ExternalRamEnabled = (value & 0x0F) == 0x0A;
+                }
+                else
+	            {
+                    base[address] = value;
+	            }
             }
         }
     }
