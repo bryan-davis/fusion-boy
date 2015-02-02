@@ -41,9 +41,6 @@ namespace SharpBoy.Core
         public int DividerCycles { get; private set; }
 
         public Display Display { get; private set; }
-
-        public int DisplayCounter { get; private set; }
-        private const int ScreenRefreshRate = 70224;    // Screen refresh is every 70,224 cycles
         private const int CyclesPerScanline = 456;
         private int scanlineCycleCounter;
 
@@ -89,24 +86,18 @@ namespace SharpBoy.Core
             }
 
             scanlineCycleCounter += cycleCount;
+            Display.UpdateLcdStatus(scanlineCycleCounter);
             if (scanlineCycleCounter >= CyclesPerScanline)
             {
                 Display.RenderScanline();
                 scanlineCycleCounter = 0;
-            }
-            Display.UpdateLcdStatus(scanlineCycleCounter);
-
-            DisplayCounter += cycleCount;
-            if (DisplayCounter >= ScreenRefreshRate)
-            {
-                DisplayCounter = 0;
             }
         }
 
         private void ResetLCDStatus()
         {
             scanlineCycleCounter = 0;
-            Memory[0xFF44] = 0; // LCDC Y coordinate
+            Memory[Util.ScanlineAddress] = 0;
 
             // Reset the mode to 01 http://problemkaputt.de/pandocs.htm#lcdstatusregister
             Util.ClearBits(Memory, Util.LcdStatAddress, 0, 1);

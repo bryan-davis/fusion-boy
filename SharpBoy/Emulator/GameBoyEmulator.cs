@@ -69,6 +69,7 @@ namespace SharpBoy.Emulator
         public void Run()
         {
             Stopwatch frameRateLimiter = Stopwatch.StartNew();
+            frameCount = 0;
             double microsecondsPerTick = (1000.0 * 1000.0) / Stopwatch.Frequency;
             frameRateTimer = Stopwatch.StartNew();           
 
