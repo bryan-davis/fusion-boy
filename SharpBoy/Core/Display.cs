@@ -36,21 +36,20 @@ namespace SharpBoy.Core
         {
             byte currentLine = Memory[Util.ScanlineAddress];
 
-            if (currentLine == Height)
-            {
-                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.vBlank);
-            }
-
-            if (currentLine > 153)
-            {
-                Memory[Util.ScanlineAddress] = 0;
-            }
-
             if (currentLine < Height)
             {
                 RenderBackground(currentLine);
                 RenderWindow(currentLine);
                 RenderSprites(currentLine);
+            } 
+            else if (currentLine == Height)
+            {
+                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.vBlank);
+            }
+            else if (currentLine > 153)
+            {
+                Memory[Util.ScanlineAddress] = 0;
+                return;
             }
             
             Memory.IncrementLcdScanline();
