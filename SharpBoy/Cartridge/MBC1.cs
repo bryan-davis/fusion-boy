@@ -20,10 +20,10 @@ namespace SharpBoy.Cartridge
         {
             get
             {
-                if (IsROMBankRegion(address))
+                if (IsRomBankRegion(address))
                 {
                     int offsetAddress = address - 0x4000;
-                    int bankAddress = offsetAddress + (CurrentROMBank * 0x4000);
+                    int bankAddress = offsetAddress + (CurrentRomBank * 0x4000);
                     return cartridge[bankAddress];
                 }                
                 else

@@ -19,8 +19,8 @@ namespace SharpBoy.Cartridge
         protected byte[] data;
         protected byte[] cartridge;
         
-        public byte CurrentROMBank { get; set; }
-        public byte CurrentRAMBank { get; set; }
+        public byte CurrentRomBank { get; set; }
+        public byte CurrentRamBank { get; set; }
         public bool InRomBankMode { get; set; }
         public bool ExternalRamEnabled { get; set; }
 
@@ -28,8 +28,8 @@ namespace SharpBoy.Cartridge
 
         protected MemoryBankController(Stream fileStream)
         {            
-            CurrentROMBank = 1;
-            CurrentRAMBank = 0;
+            CurrentRomBank = 1;
+            CurrentRamBank = 0;
 
             cartridge = new byte[fileStream.Length];
             fileStream.Read(cartridge, 0x0, cartridge.Length);
@@ -89,7 +89,7 @@ namespace SharpBoy.Cartridge
             }
             set
             {
-                if (IsROM(address) || IsUnsableRegion(address))
+                if (IsRom(address) || IsUnsableRegion(address))
                 {
                     return;
                 }
@@ -110,13 +110,13 @@ namespace SharpBoy.Cartridge
                     if (UpdateTimerHandler != null)
                         UpdateTimerHandler(value);
                 }
-                else if (IsLCDRegister(address))
+                else if (IsLcdRegister(address))
                 {
                     data[address] = 0;
                 }
-                else if (IsDMAAddress(address))
+                else if (IsDmaAddress(address))
                 {
-                    PerformDMATransfer(value);
+                    PerformDmaTransfer(value);
                 }
                 else
                 {
@@ -132,7 +132,7 @@ namespace SharpBoy.Cartridge
             data[DividerAddress]++;
         }
 
-        public void IncrementLCDScanline()
+        public void IncrementLcdScanline()
         {
             data[Util.ScanlineAddress]++;
         }
@@ -168,7 +168,7 @@ namespace SharpBoy.Cartridge
         }
 
         // http://problemkaputt.de/pandocs.htm#lcdoamdmatransfers
-        protected void PerformDMATransfer(int sourceAddress)
+        protected void PerformDmaTransfer(int sourceAddress)
         {
             ushort address = (ushort)(sourceAddress * 0x100);
             // Copying 160 bytes over
@@ -178,12 +178,12 @@ namespace SharpBoy.Cartridge
             }
         }
 
-        protected bool IsROM(int address)
+        protected bool IsRom(int address)
         {
             return address < 0x8000;
         }
 
-        protected bool IsROMBankRegion(int address)
+        protected bool IsRomBankRegion(int address)
         {
             return 0x4000 <= address && address <= 0x7FFF;
         }
@@ -213,7 +213,7 @@ namespace SharpBoy.Cartridge
             return address == DividerAddress;
         }
 
-        protected bool IsLCDRegister(int address)
+        protected bool IsLcdRegister(int address)
         {
             return address == Util.ScanlineAddress;
         }
@@ -223,7 +223,7 @@ namespace SharpBoy.Cartridge
             return address == 0xFF07;
         }
 
-        protected bool IsDMAAddress(int address)
+        protected bool IsDmaAddress(int address)
         {
             return address == 0xFF46;
         }

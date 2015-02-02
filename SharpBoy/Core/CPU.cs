@@ -91,10 +91,10 @@ namespace SharpBoy.Core
             scanlineCycleCounter += cycleCount;
             if (scanlineCycleCounter >= CyclesPerScanline)
             {
-                Display.Render();
+                Display.RenderScanline();
                 scanlineCycleCounter = 0;
             }
-            Display.UpdateLCDStatus(scanlineCycleCounter);
+            Display.UpdateLcdStatus(scanlineCycleCounter);
 
             DisplayCounter += cycleCount;
             if (DisplayCounter >= ScreenRefreshRate)
