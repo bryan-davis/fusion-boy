@@ -12,7 +12,7 @@ namespace SharpBoy.Core
     public class Display
     {
         private const int Width = 160;
-        private const int Height = 144;        
+        private const int Height = 144;
         private const int Mode0Bounds = 204;
         private const int Mode2Bounds = 80;
         private const int Mode3Bounds = 172;
@@ -24,11 +24,11 @@ namespace SharpBoy.Core
         private readonly byte[] Palette = { 255, 192, 96, 0 };
 
         public MemoryBankController Memory { get; private set; }
-        public byte[] ScreenData { get; private set; } 
+        public byte[] ScreenData { get; private set; }
 
         public Display(MemoryBankController memory)
         {
-            Memory = memory;            
+            Memory = memory;
             ScreenData = new byte[Width * Height];
         }
 
@@ -41,7 +41,7 @@ namespace SharpBoy.Core
                 RenderBackground(currentLine);
                 RenderWindow(currentLine);
                 RenderSprites(currentLine);
-            } 
+            }
             else if (currentLine == Height)
             {
                 Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.vBlank);
@@ -51,7 +51,7 @@ namespace SharpBoy.Core
                 Memory[Util.ScanlineAddress] = 0;
                 return;
             }
-            
+
             Memory.IncrementLcdScanline();
         }
 
@@ -67,7 +67,7 @@ namespace SharpBoy.Core
             {
                 Util.SetBits(Memory, Util.LcdStatAddress, 0);
                 Util.ClearBits(Memory, Util.LcdStatAddress, 1);
-                interruptRequested = Util.IsBitSet(Memory, Util.LcdStatAddress, 4);                
+                interruptRequested = Util.IsBitSet(Memory, Util.LcdStatAddress, 4);
             }
             else
             {
@@ -87,7 +87,7 @@ namespace SharpBoy.Core
                 // Mode 3 - Transfering Data to LCD Driver
                 else
                 {
-                    Util.SetBits(Memory, Util.LcdStatAddress, 0, 1);             
+                    Util.SetBits(Memory, Util.LcdStatAddress, 0, 1);
                 }
             }
 
@@ -119,7 +119,7 @@ namespace SharpBoy.Core
             {
                 Util.ClearBits(Memory, Util.LcdStatAddress, 2);
             }
-        }        
+        }
 
         private void ClearScreen()
         {
@@ -140,48 +140,7 @@ namespace SharpBoy.Core
                 byte scrollY = (byte)(Memory[Util.ScrollYAddress]);
                 int y = (scrollY + line) % MaxScrollAmount;
 
-                ushort tileDataStart = 
-                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
-                ushort tileMapStart = 
-                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 3)) ? (ushort)0x9C00 : (ushort)0x9800;                
-                
-                // Tiles are mapped with signed bytes (-128, 127), when the data
-                // address is 0x8800, so they need to be offset by 128.
-                int mapOffset = (tileDataStart == 0x8800) ? 128 : 0;
-
-                for (int i = 0; i < Width; i++)
-                {
-                    int x = (scrollX + i) % MaxScrollAmount;
-                    // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen.
-                    // Calculates which tile map we should retrieve.
-                    int tileNumber = Util.Convert2dTo1d(x / 8, y / 8, 32);
-
-                    // Calculate the index which contains yet another index 
-                    // that points to where the tile data is.
-                    short tileDisplayIndex = Memory[tileMapStart + tileNumber];
-                    // If the map offset is 128, then the index is a signed number.
-                    if (mapOffset == 128)
-                        tileDisplayIndex = (sbyte)tileDisplayIndex;
-
-                    // Calculate where the start of the tile data is in memory.
-                    int tileStartAddress = tileDataStart + ((tileDisplayIndex + mapOffset) * TileSize);
-
-                    // Which column of the tile do we need to address in memory?
-                    int tilePixelColumn = x % 8;
-                    // Which row of the tile do we need to address in memory?
-                    int tilePixelRow = y % 8;
-
-                    int tileLineOffset = tilePixelRow * 2;
-                    byte byte1 = Memory[tileStartAddress + tileLineOffset];
-                    byte byte2 = Memory[tileStartAddress + tileLineOffset + 1];
-
-                    int graphicsIndex = Util.Convert2dTo1d(i, line, Width);
-                    byte colorValue = GetColorValue(byte1, byte2, tilePixelColumn);
-
-                    // Least significant bits are swapped compared to the array containing the screen data
-                    // e.g. graphicsIndex 0 is equal to bit 7
-                    ScreenData[graphicsIndex] = GetColor(colorValue, 0xFF47);
-                }
+                RenderComponent(line, scrollX, y, 3, false);
             }
         }
 
@@ -189,7 +148,7 @@ namespace SharpBoy.Core
         {
             // Is the window display enabled?
             if (Util.IsBitSet(Memory, Util.LcdControlAddress, 5))
-            {                
+            {
                 byte windowX = (byte)(Memory[Util.WindowXAddress] - 7);
                 byte windowY = (byte)(Memory[Util.WindowYAddress]);
                 int y = line - windowY;
@@ -199,49 +158,58 @@ namespace SharpBoy.Core
                 if (windowY > line)
                     return;
 
-                ushort tileDataStart =
-                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
-                ushort tileMapStart =
-                    (Util.IsBitSet(Memory, Util.LcdControlAddress, 6)) ? (ushort)0x9C00 : (ushort)0x9800;
+                RenderComponent(line, windowX, y, 6, true);
+            }
+        }
 
-                // Tiles are mapped with signed bytes (-128, 127), when the data
-                // address is 0x8800, so they need to be offset by 128.
-                int mapOffset = (tileDataStart == 0x8800) ? 128 : 0;
+        private void RenderComponent(int line, byte xPosition, int yPosition, byte bit, bool renderingWindow)
+        {
+            ushort tileDataStart =
+                (Util.IsBitSet(Memory, Util.LcdControlAddress, 4)) ? (ushort)0x8000 : (ushort)0x8800;
+            ushort tileMapStart =
+                (Util.IsBitSet(Memory, Util.LcdControlAddress, bit)) ? (ushort)0x9C00 : (ushort)0x9800;
 
-                for (int i = 0; i < Width; i++)
-                {
-                    int x = (i > windowX) ? i - windowX : windowX + i;
+            // Tiles are mapped with signed bytes (-128, 127), when the data
+            // address is 0x8800, so they need to be offset by 128.
+            int mapOffset = (tileDataStart == 0x8800) ? 128 : 0;
 
-                    // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen
-                    // Calculates which tile map we should retrieve
-                    int tileNumber = Util.Convert2dTo1d(x / 8, y / 8, 32);
+            for (int i = 0; i < Width; i++)
+            {
+                int x;
+                if (renderingWindow)
+                    x = (i > xPosition) ? i - xPosition : xPosition + i;
+                else
+                    x = (xPosition + i) % MaxScrollAmount;
 
-                    // Calculate the index which contains yet another index that points to where the tile data is
-                    short tileDisplayIndex = Memory[tileMapStart + tileNumber];
-                    // If the map offset is 128, then the index is a signed number
-                    if (mapOffset == 128)
-                        tileDisplayIndex = (sbyte)tileDisplayIndex;
+                // 8 x 8 pixels in a tile, 32 x 32 tiles on the screen.
+                // Calculates which tile map we should retrieve.
+                int tileNumber = Util.Convert2dTo1d(x / 8, yPosition / 8, 32);
 
-                    // Calculate where the start of the tile data is in memory
-                    int tileStartAddress = tileDataStart + ((tileDisplayIndex + mapOffset) * TileSize);
+                // Calculate the index which contains yet another index 
+                // that points to where the tile data is.
+                short tileDisplayIndex = Memory[tileMapStart + tileNumber];
+                // If the map offset is 128, then the index is a signed number.
+                if (mapOffset == 128)
+                    tileDisplayIndex = (sbyte)tileDisplayIndex;
 
-                    // Which column of the tile do we need to address in memory?
-                    int tilePixelColumn = x % 8;
-                    // Which line of the tile do we need to address in memory?
-                    int tilePixelRow = y % 8;
+                // Calculate where the start of the tile data is in memory.
+                int tileStartAddress = tileDataStart + ((tileDisplayIndex + mapOffset) * TileSize);
 
-                    //int tilePixelOffset = Util.Convert2dTo1d(tileX, tileY, 8);
-                    int tileLineOffset = tilePixelRow * 2;
-                    byte byte1 = Memory[tileStartAddress + tileLineOffset];
-                    byte byte2 = Memory[tileStartAddress + tileLineOffset + 1];
+                // Which column of the tile do we need to address in memory?
+                int tilePixelColumn = x % 8;
+                // Which row of the tile do we need to address in memory?
+                int tilePixelRow = yPosition % 8;
 
-                    int graphicsIndex = Util.Convert2dTo1d(i, line, Width);
-                    byte colorValue = GetColorValue(byte1, byte2, tilePixelColumn);
+                int tileLineOffset = tilePixelRow * 2;
+                byte byte1 = Memory[tileStartAddress + tileLineOffset];
+                byte byte2 = Memory[tileStartAddress + tileLineOffset + 1];
 
-                    // Least significant bits are swapped compared to the array containing the screen data
-                    // e.g. graphicsIndex 0 is equal to bit 7
-                    ScreenData[graphicsIndex] = GetColor(colorValue, 0xFF47);
-                }
+                int graphicsIndex = Util.Convert2dTo1d(i, line, Width);
+                byte colorValue = GetColorValue(byte1, byte2, tilePixelColumn);
+
+                // Least significant bits are swapped compared to the array containing the screen data
+                // e.g. graphicsIndex 0 is equal to bit 7
+                ScreenData[graphicsIndex] = GetColor(colorValue, 0xFF47);
             }
         }
 
@@ -259,7 +227,7 @@ namespace SharpBoy.Core
                     int yPosition = Memory[OamAddress + i] - 16;
                     int xPosition = Memory[OamAddress + i + 1] - 8;
 
-                    if (SpriteInScreenBounds(xPosition, yPosition) && 
+                    if (SpriteInScreenBounds(xPosition, yPosition) &&
                         SpriteInScanlineRange(line, yPosition, spriteHeight))
                     {
                         byte tileIndex = Memory[OamAddress + i + 2];
@@ -275,7 +243,7 @@ namespace SharpBoy.Core
 
         private void RenderSprite(int x, int y, int currentLine, int tileIndex, byte attributes, int spriteHeight)
         {
-            int tilePixelRow = currentLine - y;            
+            int tilePixelRow = currentLine - y;
             if (Util.IsBitSet(attributes, 6))   // Y is flipped
             {
                 // If we were originally going to draw row 3 of the tile and the tile
@@ -304,11 +272,11 @@ namespace SharpBoy.Core
 
                 int graphicsIndex = Util.Convert2dTo1d(x + column, currentLine, Width);
                 // Sprite is behind the background, unless the background pixel is white.
-                if (Util.IsBitSet(attributes, 7) && ScreenData[graphicsIndex] != Palette[0])   
+                if (Util.IsBitSet(attributes, 7) && ScreenData[graphicsIndex] != Palette[0])
                     continue;
 
-                ScreenData[graphicsIndex] = color;                
-            }   
+                ScreenData[graphicsIndex] = color;
+            }
         }
 
         // Checks to see if a sprite is in range of the current scanline.
@@ -319,7 +287,7 @@ namespace SharpBoy.Core
 
         private bool SpriteInScreenBounds(int x, int y)
         {
-            return ( (0 <= x && x < Width) && (0 <= y && y < Height) );
+            return ((0 <= x && x < Width) && (0 <= y && y < Height));
         }
 
         // Calculates which color index to use in the color palette for a 
