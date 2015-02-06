@@ -18,10 +18,11 @@ namespace SharpBoy.Cartridge
         protected const int DividerAddress = 0xFF04;
         protected byte[] data;
         protected byte[] cartridge;
+        protected byte[] ramBank;
         
         public byte CurrentRomBank { get; set; }
         public byte CurrentRamBank { get; set; }
-        public BankModes BankMode { get; protected set; }
+        protected BankModes BankMode { get; set; }
         public bool ExternalRamEnabled { get; set; }
 
         public event Action<byte> UpdateTimerHandler;
@@ -33,17 +34,20 @@ namespace SharpBoy.Cartridge
         }
 
         protected MemoryBankController(Stream fileStream)
-        {            
+        {
+            cartridge = new byte[fileStream.Length];
+            fileStream.Read(cartridge, 0x0, cartridge.Length);
+
+            data = new byte[MemorySize];
+
+            ramBank = new byte[32 * 1024];
+            Array.Copy(cartridge, 0xA000, ramBank, 0x00, 0x1FFF);
+
             CurrentRomBank = 1;
             CurrentRamBank = 0;
 
             BankMode = BankModes.Rom;
             ExternalRamEnabled = false;
-
-            cartridge = new byte[fileStream.Length];
-            fileStream.Read(cartridge, 0x0, cartridge.Length);
-
-            data = new byte[MemorySize];
         }
 
         // http://problemkaputt.de/pandocs.htm#powerupsequence
@@ -197,9 +201,19 @@ namespace SharpBoy.Cartridge
             return 0x4000 <= address && address <= 0x7FFF;
         }
 
-        protected bool IsBankSwitchingRegion(int address)
+        protected bool IsRamBankRegion(int address)
+        {
+            return 0xA000 <= address && address <= 0xBFFF;
+        }
+
+        protected bool IsRomBankSwitchingRegion(int address)
         {
             return 0x2000 <= address && address <= 0x3FFF;
+        }
+
+        protected bool IsUpperBankSwitchingRegion(int address)
+        {
+            return 0x4000 <= address && address <= 0x5FFF;
         }
 
         protected bool IsRamEnableRegion(int address)
