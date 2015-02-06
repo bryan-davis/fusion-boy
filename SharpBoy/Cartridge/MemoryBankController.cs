@@ -41,7 +41,11 @@ namespace SharpBoy.Cartridge
             data = new byte[MemorySize];
 
             ramBank = new byte[32 * 1024];
-            Array.Copy(cartridge, 0xA000, ramBank, 0x00, 0x1FFF);
+
+            if (cartridge.Length >= 0xBFFF)
+            {
+                Array.Copy(cartridge, 0xA000, ramBank, 0x00, 0x1FFF);
+            }
 
             CurrentRomBank = 1;
             CurrentRamBank = 0;

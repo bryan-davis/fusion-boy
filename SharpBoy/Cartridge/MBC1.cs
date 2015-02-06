@@ -28,7 +28,7 @@ namespace SharpBoy.Cartridge
                 }
                 else if (IsRamBankRegion(address))
                 {
-                    int bankAddress = address + (CurrentRomBank * 0x4000);
+                    int bankAddress = (address - 0xA000) + (CurrentRamBank * 0x2000);
                     return ramBank[bankAddress];
                 }
                 else
@@ -57,7 +57,7 @@ namespace SharpBoy.Cartridge
                 }
                 else if (IsRamBankRegion(address))
                 {
-                    int bankAddress = address + (CurrentRomBank * 0x4000);
+                    int bankAddress = (address - 0xA000) + (CurrentRamBank * 0x2000);
                     ramBank[bankAddress] = value;
                 }
                 else if (IsUpperBankSwitchingRegion(address))

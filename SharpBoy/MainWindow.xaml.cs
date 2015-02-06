@@ -7,6 +7,7 @@
 using Microsoft.Win32;
 using SharpBoy.Emulator;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using System.Windows.Input;
@@ -76,6 +77,7 @@ namespace SharpBoy
                 {
                     MessageBox.Show(ex.Message, "Failed to Load File",
                         MessageBoxButton.OK, MessageBoxImage.Error);
+                    Debug.WriteLine(ex.StackTrace);
                 }
             }
         }
