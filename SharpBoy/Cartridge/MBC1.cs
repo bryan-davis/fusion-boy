@@ -37,6 +37,13 @@ namespace SharpBoy.Cartridge
                 {
                     ExternalRamEnabled = (value & 0x0F) == 0x0A;
                 }
+                else if (IsRomRamModeRegion(address))
+                {
+                    if (value == 0 || value == 1)
+                    {
+                        BankMode = (BankModes)value;
+                    }
+                }
                 else
 	            {
                     base[address] = value;
