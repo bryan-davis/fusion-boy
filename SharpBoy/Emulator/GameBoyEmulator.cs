@@ -79,13 +79,17 @@ namespace SharpBoy.Emulator
                 frameRateLimiter.Restart();
                 UpdateFrame();
                 Render();
-
-                double elapsedTime;
-                do
-                {
-                    elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
-                } while (elapsedTime < microsecondsPerFrame);
+                Sleep(frameRateLimiter, microsecondsPerTick);
             }
+        }
+
+        private void Sleep(Stopwatch frameRateLimiter, double microsecondsPerTick)
+        {
+            double elapsedTime;
+            do
+            {
+                elapsedTime = frameRateLimiter.ElapsedTicks * microsecondsPerTick;
+            } while (elapsedTime < microsecondsPerFrame);
         }
 
         public void LoadRom(string filename)
