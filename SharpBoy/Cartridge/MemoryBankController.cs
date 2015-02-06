@@ -21,15 +21,24 @@ namespace SharpBoy.Cartridge
         
         public byte CurrentRomBank { get; set; }
         public byte CurrentRamBank { get; set; }
-        public bool InRomBankMode { get; set; }
+        public BankModes BankMode { get; protected set; }
         public bool ExternalRamEnabled { get; set; }
 
         public event Action<byte> UpdateTimerHandler;
+
+        protected enum BankModes
+        {
+            Rom = 0,
+            Ram = 1
+        }
 
         protected MemoryBankController(Stream fileStream)
         {            
             CurrentRomBank = 1;
             CurrentRamBank = 0;
+
+            BankMode = BankModes.Rom;
+            ExternalRamEnabled = false;
 
             cartridge = new byte[fileStream.Length];
             fileStream.Read(cartridge, 0x0, cartridge.Length);
@@ -89,7 +98,7 @@ namespace SharpBoy.Cartridge
             }
             set
             {
-                if (IsRom(address) || IsUnsableRegion(address))
+                if (IsRom(address) || IsUnusableRegion(address))
                 {
                     return;
                 }
@@ -198,7 +207,7 @@ namespace SharpBoy.Cartridge
             return 0x0000 <= address && address <= 0x1FFF;
         }
 
-        protected bool IsUnsableRegion(int address)
+        protected bool IsUnusableRegion(int address)
         {
             return 0xFEA0 <= address && address <= 0xFEFF;
         }
@@ -206,6 +215,11 @@ namespace SharpBoy.Cartridge
         protected bool IsEchoRegion(int address)
         {
             return 0xE000 <= address && address <= 0xFDFF;
+        }
+
+        protected bool IsRomRamModeRegion(int address)
+        {
+            return 0x6000 <= address && address <= 0x7FFF;
         }
 
         protected bool IsDividerRegister(int address)
