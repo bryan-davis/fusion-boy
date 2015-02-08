@@ -92,7 +92,8 @@ namespace SharpBoy.Core
             if (scanlineCycleCounter >= CyclesPerScanline)
             {
                 Display.RenderScanline();
-                scanlineCycleCounter = 0;
+                while (scanlineCycleCounter >= CyclesPerScanline)
+                    scanlineCycleCounter -= CyclesPerScanline;
             }
         }
 
@@ -125,9 +126,11 @@ namespace SharpBoy.Core
                     if (++Memory[Util.TimerCounterAddress] == 0)
                     {
                         Memory[Util.TimerCounterAddress] = Memory[Util.TimerModuloAddress];
-                        Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);                    
-                    }                   
-                    TimerCycles = 0;
+                        Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);
+                    }
+
+                    while (TimerCycles >= CyclesPerTimerIncrement)
+                        TimerCycles -= CyclesPerTimerIncrement;
                 } 
             }
         }
@@ -149,16 +152,16 @@ namespace SharpBoy.Core
             switch (refreshSetting)
             {
                 case 0: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 4096;
+                    CyclesPerTimerIncrement = cyclesPerSecond / 1024;
                     break;
                 case 1: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 262144; 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 16; 
                     break;
                 case 2: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 65536; 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 64; 
                     break;
                 case 3: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 16384; 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 256; 
                     break;
                 default:
                     break;
@@ -215,7 +218,9 @@ namespace SharpBoy.Core
             if (DividerCycles >= CyclesPerDividerIncrement)
             {
                 Memory.IncrementDividerRegister();
-                DividerCycles = 0;
+
+                while (DividerCycles >= CyclesPerDividerIncrement)
+                    DividerCycles -= CyclesPerDividerIncrement;
             } 
         }
 

@@ -142,6 +142,10 @@ namespace SharpBoy.Cartridge
                 {
                     data[address] = (byte)(value & 0x1F);
                 }
+                else if (address == Util.TimerControlAddress)
+                {
+                    data[address] = (byte)(value & 0x07);
+                }
                 else
                 {
                     data[address] = value;
