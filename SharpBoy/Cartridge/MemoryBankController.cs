@@ -14,8 +14,7 @@ namespace SharpBoy.Cartridge
 {
     public abstract class MemoryBankController
     {
-        protected const int MemorySize = 0x10000; // 65536 - 64K
-        protected const int DividerAddress = 0xFF04;
+        protected const int MemorySize = 0x10000; // 65536 - 64K        
         protected byte[] data;
         protected byte[] cartridge;
         protected byte[] ramBank;
@@ -116,24 +115,32 @@ namespace SharpBoy.Cartridge
                     // Writing to the echo region also writes to an offset of 0xC000 - 0xDDFF
                     data[address - 0x2000] = value;
                 }
-                else if (IsDividerRegister(address))
+                else if (address == Util.DividerAddress)
                 {
                     data[address] = 0;
                 }
-                else if (IsTimerControl(address))
+                else if (address == Util.TimerControlAddress)
                 {
                     data[address] = value;
 
                     if (UpdateTimerHandler != null)
                         UpdateTimerHandler(value);
                 }
-                else if (IsLcdRegister(address))
+                else if (address == Util.ScanlineAddress)
                 {
                     data[address] = 0;
                 }
-                else if (IsDmaAddress(address))
+                else if (address == Util.DmaAddress)
                 {
                     PerformDmaTransfer(value);
+                }
+                else if (address == Util.InterruptEnableAddress)
+                {
+                    data[address] = (byte)(value & 0x1F);
+                }
+                else if (address == Util.InterruptFlagAddress)
+                {
+                    data[address] = (byte)(value & 0x1F);
                 }
                 else
                 {
@@ -146,7 +153,7 @@ namespace SharpBoy.Cartridge
         // them to 0, so we need dedicated methods to increment them.
         public void IncrementDividerRegister()
         {
-            data[DividerAddress]++;
+            data[Util.DividerAddress]++;
         }
 
         public void IncrementLcdScanline()
@@ -238,26 +245,6 @@ namespace SharpBoy.Cartridge
         protected bool IsRomRamModeRegion(int address)
         {
             return 0x6000 <= address && address <= 0x7FFF;
-        }
-
-        protected bool IsDividerRegister(int address)
-        {
-            return address == DividerAddress;
-        }
-
-        protected bool IsLcdRegister(int address)
-        {
-            return address == Util.ScanlineAddress;
-        }
-
-        protected bool IsTimerControl(int address)
-        {
-            return address == 0xFF07;
-        }
-
-        protected bool IsDmaAddress(int address)
-        {
-            return address == 0xFF46;
         }
     }
 }

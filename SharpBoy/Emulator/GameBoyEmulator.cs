@@ -138,7 +138,7 @@ namespace SharpBoy.Emulator
                     missingCodes.Add(opCodeLookup);
                 }
 
-                cpu.HandleTimers(cycles);
+                cpu.UpdateTimers(cycles);
                 cpu.UpdateGraphics(cycles);
                 cpu.ProcessInterrupts();                 
             }            

@@ -35,9 +35,9 @@ namespace SharpBoy.Core
         public bool Stopped { get; private set; }
 
         public bool TimerEnabled { get; private set; }
-        public int TimerCycleIncrement { get; private set; }
+        public int CyclesPerTimerIncrement { get; private set; }
         public int TimerCycles { get; private set; }
-        public int DividerCycleIncrement { get; private set; }
+        public int CyclesPerDividerIncrement { get; private set; }
         public int DividerCycles { get; private set; }
 
         public Display Display { get; private set; }
@@ -45,6 +45,8 @@ namespace SharpBoy.Core
         private int scanlineCycleCounter;
 
         private Queue<bool> interruptQueue;
+
+        private StreamWriter log = new StreamWriter("E:\\instr_timing.txt");
 
         public CPU() { }
 
@@ -111,25 +113,20 @@ namespace SharpBoy.Core
          * of the number of cycles that have occured between each increment, resetting
          * to 0 after an increment has occurred.
          */
-        public void HandleTimers(int cycleCount)
+        public void UpdateTimers(int cycleCount)
         {
             HandleDivider(cycleCount);
 
             if (TimerEnabled)
             {
                 TimerCycles += cycleCount;
-                if (TimerCycles >= TimerCycleIncrement)
+                if (TimerCycles >= CyclesPerTimerIncrement)
                 {
-                    int result = Memory[Util.TimerCounterAddress] +1;
-                    if (result > 255)
+                    if (++Memory[Util.TimerCounterAddress] == 0)
                     {
                         Memory[Util.TimerCounterAddress] = Memory[Util.TimerModuloAddress];
                         Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);                    
-                    }
-                    else
-                    {
-                        Memory[Util.TimerCounterAddress] = (byte)result;
-                    }                    
+                    }                   
                     TimerCycles = 0;
                 } 
             }
@@ -151,13 +148,17 @@ namespace SharpBoy.Core
             byte refreshSetting = (byte)(value & 3);
             switch (refreshSetting)
             {
-                case 0: TimerCycleIncrement = cyclesPerSecond / 4096;
+                case 0: 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 4096;
                     break;
-                case 1: TimerCycleIncrement = cyclesPerSecond / 262144; 
+                case 1: 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 262144; 
                     break;
-                case 2: TimerCycleIncrement = cyclesPerSecond / 65536; 
+                case 2: 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 65536; 
                     break;
-                case 3: TimerCycleIncrement = cyclesPerSecond / 16384; 
+                case 3: 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 16384; 
                     break;
                 default:
                     break;
@@ -211,7 +212,7 @@ namespace SharpBoy.Core
         private void HandleDivider(int cycleCount)
         {
             DividerCycles += cycleCount;
-            if (DividerCycles >= DividerCycleIncrement)
+            if (DividerCycles >= CyclesPerDividerIncrement)
             {
                 Memory.IncrementDividerRegister();
                 DividerCycles = 0;
@@ -1250,14 +1251,14 @@ namespace SharpBoy.Core
             Halted = false;
             Stopped = false;
             TimerEnabled = false;
-            TimerCycleIncrement = 0;
+            CyclesPerTimerIncrement = 0;
             TimerCycles = 0;
             DividerCycles = 0;
             scanlineCycleCounter = 0;
 
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
             // The divider increments at rate of 16384Hz
-            DividerCycleIncrement = cyclesPerSecond / 16384;
+            CyclesPerDividerIncrement = cyclesPerSecond / 16384;
 
             RegisterAF.Value = 0x01B0;
             RegisterBC.Value = 0x0013;
@@ -1334,7 +1335,7 @@ namespace SharpBoy.Core
             { 0xB4,    4  }, { 0xB5,    4  }, { 0xB6,    8  }, { 0xB7,    4  }, { 0xB8,    4  }, 
             { 0xB9,    4  }, { 0xBA,    4  }, { 0xBB,    4  }, { 0xBC,    4  }, { 0xBD,    4  }, 
             { 0xBE,    8  }, { 0xBF,    4  }, { 0xC0,    8  }, { 0xC1,    12 }, { 0xC2,    12 }, 
-            { 0xC3,    12 }, { 0xC4,    12 }, { 0xC5,    16 }, { 0xC6,    8  }, { 0xC7,    32 }, 
+            { 0xC3,    12 }, { 0xC4,    12 }, { 0xC5,    16 }, { 0xC6,    8  }, { 0xC7,    16 }, 
             { 0xC8,    8  }, { 0xC9,    8  }, { 0xCA,    12 }, { 0xCB00,  8  }, { 0xCB01,  8  }, 
             { 0xCB02,  8  }, { 0xCB03,  8  }, { 0xCB04,  8  }, { 0xCB05,  8  }, { 0xCB06,  16 }, 
             { 0xCB07,  8  }, { 0xCB08,  8  }, { 0xCB09,  8  }, { 0xCB0A,  8  }, { 0xCB0B,  8  }, 
@@ -1387,14 +1388,14 @@ namespace SharpBoy.Core
             { 0xCBF2,  8  }, { 0xCBF3,  8  }, { 0xCBF4,  8  }, { 0xCBF5,  8  }, { 0xCBF6,  16 }, 
             { 0xCBF7,  8  }, { 0xCBF8,  8  }, { 0xCBF9,  8  }, { 0xCBFA,  8  }, { 0xCBFB,  8  }, 
             { 0xCBFC,  8  }, { 0xCBFD,  8  }, { 0xCBFE,  16 }, { 0xCBFF,  8  }, { 0xCC,    12 }, 
-            { 0xCD,    12 }, { 0xCE,    8  }, { 0xCF,    32 }, { 0xD0,    8  }, { 0xD1,    12 }, 
-            { 0xD2,    12 }, { 0xD4,    12 }, { 0xD5,    16 }, { 0xD6,    8  }, { 0xD7,    32 }, 
+            { 0xCD,    12 }, { 0xCE,    8  }, { 0xCF,    16 }, { 0xD0,    8  }, { 0xD1,    12 }, 
+            { 0xD2,    12 }, { 0xD4,    12 }, { 0xD5,    16 }, { 0xD6,    8  }, { 0xD7,    16 }, 
             { 0xD8,    8  }, { 0xD9,    8  }, { 0xDA,    12 }, { 0xDC,    12 }, { 0xDE,    8  }, 
-            { 0xDF,    32 }, { 0xE0,    12 }, { 0xE1,    12 }, { 0xE2,    8  }, { 0xE5,    16 }, 
-            { 0xE6,    8  }, { 0xE7,    32 }, { 0xE8,    16 }, { 0xE9,    4  }, { 0xEA,    16 }, 
-            { 0xEE,    8  }, { 0xEF,    32 }, { 0xF0,    12 }, { 0xF1,    12 }, { 0xF2,    8  }, 
-            { 0xF3,    4  }, { 0xF5,    16 }, { 0xF6,    8  }, { 0xF7,    32 }, { 0xF8,    12 }, 
-            { 0xF9,    8  }, { 0xFA,    16 }, { 0xFB,    4  }, { 0xFE,    8  }, { 0xFF,    32 }
+            { 0xDF,    16 }, { 0xE0,    12 }, { 0xE1,    12 }, { 0xE2,    8  }, { 0xE5,    16 }, 
+            { 0xE6,    8  }, { 0xE7,    16 }, { 0xE8,    16 }, { 0xE9,    4  }, { 0xEA,    16 }, 
+            { 0xEE,    8  }, { 0xEF,    16 }, { 0xF0,    12 }, { 0xF1,    12 }, { 0xF2,    8  }, 
+            { 0xF3,    4  }, { 0xF5,    16 }, { 0xF6,    8  }, { 0xF7,    16 }, { 0xF8,    12 }, 
+            { 0xF9,    8  }, { 0xFA,    16 }, { 0xFB,    4  }, { 0xFE,    8  }, { 0xFF,    16 }
         };
 
         private void Log(int opCode)
@@ -1419,7 +1420,8 @@ namespace SharpBoy.Core
             output.Append(string.Format("H = 0x{0:X2} ", RegisterHL.High));
             output.Append(string.Format("L = 0x{0:X2}", RegisterHL.Low));
 
-            Debug.WriteLine(output.ToString());
+            //Debug.WriteLine(output.ToString());
+            log.WriteLine(output.ToString());
         }
     }
 }
