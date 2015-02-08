@@ -37,7 +37,7 @@ namespace SharpBoy.Core
         public bool TimerEnabled { get; private set; }
         public int CyclesPerTimerIncrement { get; private set; }
         public int TimerCycles { get; private set; }
-        public int CyclesPerDividerIncrement { get; private set; }
+        private const int CyclesPerDividerIncrement = 16384;
         public int DividerCycles { get; private set; }
 
         public Display Display { get; private set; }
@@ -116,7 +116,7 @@ namespace SharpBoy.Core
          */
         public void UpdateTimers(int cycleCount)
         {
-            HandleDivider(cycleCount);
+            UpdateDivider(cycleCount);
 
             if (TimerEnabled)
             {
@@ -212,7 +212,7 @@ namespace SharpBoy.Core
             }
         }        
 
-        private void HandleDivider(int cycleCount)
+        private void UpdateDivider(int cycleCount)
         {
             DividerCycles += cycleCount;
             if (DividerCycles >= CyclesPerDividerIncrement)
@@ -1260,10 +1260,6 @@ namespace SharpBoy.Core
             TimerCycles = 0;
             DividerCycles = 0;
             scanlineCycleCounter = 0;
-
-            int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
-            // The divider increments at rate of 16384Hz
-            CyclesPerDividerIncrement = cyclesPerSecond / 16384;
 
             RegisterAF.Value = 0x01B0;
             RegisterBC.Value = 0x0013;
