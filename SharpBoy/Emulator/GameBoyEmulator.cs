@@ -39,7 +39,11 @@ namespace SharpBoy.Emulator
             get { return currentGame; }
             private set
             {
-                currentGame = value;
+                int index = value.IndexOf('(');
+                if (index != -1)
+                    currentGame = value.Substring(0, index - 1);
+                else
+                    currentGame = value;
                 RaisePropertyChanged("CurrentGame");
             }
         }
