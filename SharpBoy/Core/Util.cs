@@ -13,8 +13,10 @@ namespace SharpBoy.Core
     {
         public const ushort InterruptEnableAddress = 0xFFFF;    // IE
         public const ushort InterruptFlagAddress = 0xFF0F;      // IF
+        public const ushort DividerAddress = 0xFF04;         // DIV
         public const ushort TimerCounterAddress = 0xFF05;       // TIMA
         public const ushort TimerModuloAddress = 0xFF06;        // TMA
+        public const ushort TimerControlAddress = 0xFF07;       // TAC
         public const ushort LcdControlAddress = 0xFF40;         // LCDC
         public const ushort LcdStatAddress = 0xFF41;            // STAT
         public const ushort WindowYAddress = 0xFF4A;            // WY        
@@ -22,6 +24,7 @@ namespace SharpBoy.Core
         public const ushort ScrollYAddress = 0xFF42;            // SCY        
         public const ushort ScrollXAddress = 0xFF43;            // SCX
         public const ushort ScanlineAddress = 0xFF44;           // LY
+        public const ushort DmaAddress = 0xFF46;                // DMA
 
         public static bool IsBitSet(byte value, byte bit)
         {
