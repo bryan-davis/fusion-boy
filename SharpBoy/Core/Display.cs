@@ -265,10 +265,10 @@ namespace SharpBoy.Core
                     tilePixelColumn = Math.Abs(tilePixelColumn - 7);
 
                 byte colorValue = GetColorValue(byte1, byte2, tilePixelColumn);
-                byte color = GetColor(colorValue, paletteAddress);
-                // White is transparent.
-                if (color == Palette[0])
+                // Sprite data 0 is transparent.
+                if (colorValue == 0)
                     continue;
+                byte color = GetColor(colorValue, paletteAddress);
 
                 int graphicsIndex = Util.Convert2dTo1d(x + column, currentLine, Width);
                 // Sprite is behind the background, unless the background pixel is white.
