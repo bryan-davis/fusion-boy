@@ -13,7 +13,7 @@ namespace SharpBoy.Core
     {
         public const ushort InterruptEnableAddress = 0xFFFF;    // IE
         public const ushort InterruptFlagAddress = 0xFF0F;      // IF
-        public const ushort DividerAddress = 0xFF04;         // DIV
+        public const ushort DividerAddress = 0xFF04;            // DIV
         public const ushort TimerCounterAddress = 0xFF05;       // TIMA
         public const ushort TimerModuloAddress = 0xFF06;        // TMA
         public const ushort TimerControlAddress = 0xFF07;       // TAC

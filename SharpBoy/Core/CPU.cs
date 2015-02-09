@@ -37,7 +37,7 @@ namespace SharpBoy.Core
         public bool TimerEnabled { get; private set; }
         public int CyclesPerTimerIncrement { get; private set; }
         public int TimerCycles { get; private set; }
-        private const int CyclesPerDividerIncrement = 16384;
+        public int CyclesPerDividerIncrement { get; private set; }
         public int DividerCycles { get; private set; }
 
         public Display Display { get; private set; }
@@ -92,8 +92,7 @@ namespace SharpBoy.Core
             if (scanlineCycleCounter >= CyclesPerScanline)
             {
                 Display.RenderScanline();
-                while (scanlineCycleCounter >= CyclesPerScanline)
-                    scanlineCycleCounter -= CyclesPerScanline;
+                scanlineCycleCounter %= CyclesPerScanline;
             }
         }
 
@@ -128,10 +127,12 @@ namespace SharpBoy.Core
                         Memory[Util.TimerCounterAddress] = Memory[Util.TimerModuloAddress];
                         Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);
                     }
-
-                    while (TimerCycles >= CyclesPerTimerIncrement)
-                        TimerCycles -= CyclesPerTimerIncrement;
+                    TimerCycles %= CyclesPerTimerIncrement;
                 } 
+            }
+            else
+            {
+                TimerCycles = 0;
             }
         }
 
@@ -146,22 +147,21 @@ namespace SharpBoy.Core
         public void HandleTimerUpdate(byte value)
         {
             TimerEnabled = Util.IsBitSet(value, 2);
-
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
             byte refreshSetting = (byte)(value & 3);
             switch (refreshSetting)
             {
                 case 0: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 1024;
+                    CyclesPerTimerIncrement = cyclesPerSecond / 4096;
                     break;
                 case 1: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 16; 
+                    CyclesPerTimerIncrement = cyclesPerSecond / 262144; 
                     break;
-                case 2: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 64; 
+                case 2:
+                    CyclesPerTimerIncrement = cyclesPerSecond / 65536; 
                     break;
-                case 3: 
-                    CyclesPerTimerIncrement = cyclesPerSecond / 256; 
+                case 3:
+                    CyclesPerTimerIncrement = cyclesPerSecond / 16384; 
                     break;
                 default:
                     break;
@@ -218,9 +218,7 @@ namespace SharpBoy.Core
             if (DividerCycles >= CyclesPerDividerIncrement)
             {
                 Memory.IncrementDividerRegister();
-
-                while (DividerCycles >= CyclesPerDividerIncrement)
-                    DividerCycles -= CyclesPerDividerIncrement;
+                DividerCycles %= CyclesPerDividerIncrement;
             } 
         }
 
@@ -1260,6 +1258,10 @@ namespace SharpBoy.Core
             TimerCycles = 0;
             DividerCycles = 0;
             scanlineCycleCounter = 0;
+
+            int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
+            // The divider increments at rate of 16384Hz
+            CyclesPerDividerIncrement = cyclesPerSecond / 16384;
 
             RegisterAF.Value = 0x01B0;
             RegisterBC.Value = 0x0013;
