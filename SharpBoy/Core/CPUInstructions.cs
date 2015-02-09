@@ -595,13 +595,27 @@ namespace SharpBoy.Core
         private void ConditionallyJump(bool condition, ushort address)
         {
             if (condition)
+            {
                 ProgramCounter = address;
+                ConditionExecuted = true;
+            }
+            else
+            {
+                ConditionExecuted = false;
+            }
         }
 
         private void ConditionallyJump(bool condition, sbyte offset)
         {
             if (condition)
+            {
                 ProgramCounter = (ushort)(ProgramCounter + offset);
+                ConditionExecuted = true;
+            }
+            else
+            {
+                ConditionExecuted = false;
+            }
         }
 
         private void Call(ushort address)
@@ -614,7 +628,14 @@ namespace SharpBoy.Core
         private void ConditionallyCall(bool condition, ushort address)
         {
             if (condition)
+            {
                 Call(address);
+                ConditionExecuted = true;
+            }
+            else
+            {
+                ConditionExecuted = false;
+            }
         }
 
         private void Restart(byte offset)
@@ -634,7 +655,14 @@ namespace SharpBoy.Core
         private void ConditionallyReturn(bool condition)
         {
             if (condition)
+            {
                 Return();
+                ConditionExecuted = true;
+            }
+            else
+            {
+                ConditionExecuted = false;
+            }
         }
 
         private void ReturnAndEnableInterrupts()

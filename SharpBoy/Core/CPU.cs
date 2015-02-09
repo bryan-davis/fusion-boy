@@ -33,6 +33,8 @@ namespace SharpBoy.Core
         public CartridgeInfo CartInfo { get; private set; }
         public bool Halted { get; private set; }
         public bool Stopped { get; private set; }
+        // TODO: Is there a nicer way to check for this?
+        public bool ConditionExecuted { get; set; }
 
         public bool TimerEnabled { get; private set; }
         public int CyclesPerTimerIncrement { get; private set; }
@@ -46,7 +48,9 @@ namespace SharpBoy.Core
 
         private Queue<bool> interruptQueue;
 
-        private StreamWriter log = new StreamWriter("E:\\instr_timing.txt");
+#if DEBUG
+        private StreamWriter log = new StreamWriter(@"E:\debug.txt");
+#endif
 
         public CPU() { }
 
@@ -89,10 +93,10 @@ namespace SharpBoy.Core
 
             scanlineCycleCounter += cycleCount;
             Display.UpdateLcdStatus(scanlineCycleCounter);
-            if (scanlineCycleCounter >= CyclesPerScanline)
+            while (scanlineCycleCounter >= CyclesPerScanline)
             {
                 Display.RenderScanline();
-                scanlineCycleCounter %= CyclesPerScanline;
+                scanlineCycleCounter -= CyclesPerScanline;
             }
         }
 
@@ -120,14 +124,14 @@ namespace SharpBoy.Core
             if (TimerEnabled)
             {
                 TimerCycles += cycleCount;
-                if (TimerCycles >= CyclesPerTimerIncrement)
+                while (TimerCycles >= CyclesPerTimerIncrement)
                 {
                     if (++Memory[Util.TimerCounterAddress] == 0)
                     {
                         Memory[Util.TimerCounterAddress] = Memory[Util.TimerModuloAddress];
                         Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);
                     }
-                    TimerCycles %= CyclesPerTimerIncrement;
+                    TimerCycles -= CyclesPerTimerIncrement;
                 } 
             }
             else
@@ -215,16 +219,16 @@ namespace SharpBoy.Core
         private void UpdateDivider(int cycleCount)
         {
             DividerCycles += cycleCount;
-            if (DividerCycles >= CyclesPerDividerIncrement)
+            while (DividerCycles >= CyclesPerDividerIncrement)
             {
                 Memory.IncrementDividerRegister();
-                DividerCycles %= CyclesPerDividerIncrement;
+                DividerCycles -= CyclesPerDividerIncrement;
             } 
         }
 
         public void ExecuteOpCode(byte opCode)
         {
-            //Log(opCode);
+            Log(opCode);
             switch (opCode)
             {
                 case 0x00: // Do nothing
@@ -723,7 +727,7 @@ namespace SharpBoy.Core
         // For all op codes prefixed with 0xCB
         public void ExecuteExtendedOpCode(ushort extended)
         {
-            //Log(extended);
+            Log(extended);
             switch (extended)
             {
                 case 0xCB00: RotateLeftNoCarry(ref RegisterBC.High);
@@ -1254,7 +1258,7 @@ namespace SharpBoy.Core
             Halted = false;
             Stopped = false;
             TimerEnabled = false;
-            CyclesPerTimerIncrement = 0;
+            ConditionExecuted = false;
             TimerCycles = 0;
             DividerCycles = 0;
             scanlineCycleCounter = 0;
@@ -1262,6 +1266,8 @@ namespace SharpBoy.Core
             int cyclesPerSecond = Properties.Settings.Default.cyclesPerSecond;
             // The divider increments at rate of 16384Hz
             CyclesPerDividerIncrement = cyclesPerSecond / 16384;
+            // The timer increments at rate of 4096Hz
+            CyclesPerTimerIncrement = cyclesPerSecond / 4096;
 
             RegisterAF.Value = 0x01B0;
             RegisterBC.Value = 0x0013;
@@ -1302,8 +1308,8 @@ namespace SharpBoy.Core
             { 0x00,    4  }, { 0x01,    12 }, { 0x02,    8  }, { 0x03,    8  }, { 0x04,    4  }, 
             { 0x05,    4  }, { 0x06,    8  }, { 0x07,    4  }, { 0x08,    20 }, { 0x09,    8  }, 
             { 0x0A,    8  }, { 0x0B,    8  }, { 0x0C,    4  }, { 0x0D,    4  }, { 0x0E,    8  }, 
-            { 0x0F,    4  }, { 0x10,    4  }, { 0x11,    12 }, { 0x12,    8  }, { 0x13,    8  }, 
-            { 0x14,    4  }, { 0x15,    4  }, { 0x16,    8  }, { 0x17,    4  }, { 0x18,    8  }, 
+            { 0x0F,    4  }, { 0x10,    0  }, { 0x11,    12 }, { 0x12,    8  }, { 0x13,    8  }, 
+            { 0x14,    4  }, { 0x15,    4  }, { 0x16,    8  }, { 0x17,    4  }, { 0x18,    12 }, 
             { 0x19,    8  }, { 0x1A,    8  }, { 0x1B,    8  }, { 0x1C,    4  }, { 0x1D,    4  }, 
             { 0x1E,    8  }, { 0x1F,    4  }, { 0x20,    8  }, { 0x21,    12 }, { 0x22,    8  }, 
             { 0x23,    8  }, { 0x24,    4  }, { 0x25,    4  }, { 0x26,    8  }, { 0x27,    4  }, 
@@ -1338,8 +1344,8 @@ namespace SharpBoy.Core
             { 0xB4,    4  }, { 0xB5,    4  }, { 0xB6,    8  }, { 0xB7,    4  }, { 0xB8,    4  }, 
             { 0xB9,    4  }, { 0xBA,    4  }, { 0xBB,    4  }, { 0xBC,    4  }, { 0xBD,    4  }, 
             { 0xBE,    8  }, { 0xBF,    4  }, { 0xC0,    8  }, { 0xC1,    12 }, { 0xC2,    12 }, 
-            { 0xC3,    12 }, { 0xC4,    12 }, { 0xC5,    16 }, { 0xC6,    8  }, { 0xC7,    16 }, 
-            { 0xC8,    8  }, { 0xC9,    8  }, { 0xCA,    12 }, { 0xCB00,  8  }, { 0xCB01,  8  }, 
+            { 0xC3,    16 }, { 0xC4,    12 }, { 0xC5,    16 }, { 0xC6,    8  }, { 0xC7,    16 }, 
+            { 0xC8,    8  }, { 0xC9,    16 }, { 0xCA,    12 }, { 0xCB00,  8  }, { 0xCB01,  8  }, 
             { 0xCB02,  8  }, { 0xCB03,  8  }, { 0xCB04,  8  }, { 0xCB05,  8  }, { 0xCB06,  16 }, 
             { 0xCB07,  8  }, { 0xCB08,  8  }, { 0xCB09,  8  }, { 0xCB0A,  8  }, { 0xCB0B,  8  }, 
             { 0xCB0C,  8  }, { 0xCB0D,  8  }, { 0xCB0E,  16 }, { 0xCB0F,  8  }, { 0xCB10,  8  }, 
@@ -1353,18 +1359,18 @@ namespace SharpBoy.Core
             { 0xCB34,  8  }, { 0xCB35,  8  }, { 0xCB36,  16 }, { 0xCB37,  8  }, { 0xCB38,  8  }, 
             { 0xCB39,  8  }, { 0xCB3A,  8  }, { 0xCB3B,  8  }, { 0xCB3C,  8  }, { 0xCB3D,  8  }, 
             { 0xCB3E,  16 }, { 0xCB3F,  8  }, { 0xCB40,  8  }, { 0xCB41,  8  }, { 0xCB42,  8  }, 
-            { 0xCB43,  8  }, { 0xCB44,  8  }, { 0xCB45,  8  }, { 0xCB46,  16 }, { 0xCB47,  8  }, 
+            { 0xCB43,  8  }, { 0xCB44,  8  }, { 0xCB45,  8  }, { 0xCB46,  12 }, { 0xCB47,  8  }, 
             { 0xCB48,  8  }, { 0xCB49,  8  }, { 0xCB4A,  8  }, { 0xCB4B,  8  }, { 0xCB4C,  8  }, 
-            { 0xCB4D,  8  }, { 0xCB4E,  16 }, { 0xCB4F,  8  }, { 0xCB50,  8  }, { 0xCB51,  8  }, 
-            { 0xCB52,  8  }, { 0xCB53,  8  }, { 0xCB54,  8  }, { 0xCB55,  8  }, { 0xCB56,  16 }, 
+            { 0xCB4D,  8  }, { 0xCB4E,  12 }, { 0xCB4F,  8  }, { 0xCB50,  8  }, { 0xCB51,  8  }, 
+            { 0xCB52,  8  }, { 0xCB53,  8  }, { 0xCB54,  8  }, { 0xCB55,  8  }, { 0xCB56,  12 }, 
             { 0xCB57,  8  }, { 0xCB58,  8  }, { 0xCB59,  8  }, { 0xCB5A,  8  }, { 0xCB5B,  8  }, 
-            { 0xCB5C,  8  }, { 0xCB5D,  8  }, { 0xCB5E,  16 }, { 0xCB5F,  8  }, { 0xCB60,  8  }, 
+            { 0xCB5C,  8  }, { 0xCB5D,  8  }, { 0xCB5E,  12 }, { 0xCB5F,  8  }, { 0xCB60,  8  }, 
             { 0xCB61,  8  }, { 0xCB62,  8  }, { 0xCB63,  8  }, { 0xCB64,  8  }, { 0xCB65,  8  }, 
-            { 0xCB66,  16 }, { 0xCB67,  8  }, { 0xCB68,  8  }, { 0xCB69,  8  }, { 0xCB6A,  8  }, 
-            { 0xCB6B,  8  }, { 0xCB6C,  8  }, { 0xCB6D,  8  }, { 0xCB6E,  16 }, { 0xCB6F,  8  }, 
+            { 0xCB66,  12 }, { 0xCB67,  8  }, { 0xCB68,  8  }, { 0xCB69,  8  }, { 0xCB6A,  8  }, 
+            { 0xCB6B,  8  }, { 0xCB6C,  8  }, { 0xCB6D,  8  }, { 0xCB6E,  12 }, { 0xCB6F,  8  }, 
             { 0xCB70,  8  }, { 0xCB71,  8  }, { 0xCB72,  8  }, { 0xCB73,  8  }, { 0xCB74,  8  }, 
-            { 0xCB75,  8  }, { 0xCB76,  16 }, { 0xCB77,  8  }, { 0xCB78,  8  }, { 0xCB79,  8  }, 
-            { 0xCB7A,  8  }, { 0xCB7B,  8  }, { 0xCB7C,  8  }, { 0xCB7D,  8  }, { 0xCB7E,  16 }, 
+            { 0xCB75,  8  }, { 0xCB76,  12 }, { 0xCB77,  8  }, { 0xCB78,  8  }, { 0xCB79,  8  }, 
+            { 0xCB7A,  8  }, { 0xCB7B,  8  }, { 0xCB7C,  8  }, { 0xCB7D,  8  }, { 0xCB7E,  12 }, 
             { 0xCB7F,  8  }, { 0xCB80,  8  }, { 0xCB81,  8  }, { 0xCB82,  8  }, { 0xCB83,  8  }, 
             { 0xCB84,  8  }, { 0xCB85,  8  }, { 0xCB86,  16 }, { 0xCB87,  8  }, { 0xCB88,  8  }, 
             { 0xCB89,  8  }, { 0xCB8A,  8  }, { 0xCB8B,  8  }, { 0xCB8C,  8  }, { 0xCB8D,  8  }, 
@@ -1391,9 +1397,9 @@ namespace SharpBoy.Core
             { 0xCBF2,  8  }, { 0xCBF3,  8  }, { 0xCBF4,  8  }, { 0xCBF5,  8  }, { 0xCBF6,  16 }, 
             { 0xCBF7,  8  }, { 0xCBF8,  8  }, { 0xCBF9,  8  }, { 0xCBFA,  8  }, { 0xCBFB,  8  }, 
             { 0xCBFC,  8  }, { 0xCBFD,  8  }, { 0xCBFE,  16 }, { 0xCBFF,  8  }, { 0xCC,    12 }, 
-            { 0xCD,    12 }, { 0xCE,    8  }, { 0xCF,    16 }, { 0xD0,    8  }, { 0xD1,    12 }, 
+            { 0xCD,    24 }, { 0xCE,    8  }, { 0xCF,    16 }, { 0xD0,    8  }, { 0xD1,    12 }, 
             { 0xD2,    12 }, { 0xD4,    12 }, { 0xD5,    16 }, { 0xD6,    8  }, { 0xD7,    16 }, 
-            { 0xD8,    8  }, { 0xD9,    8  }, { 0xDA,    12 }, { 0xDC,    12 }, { 0xDE,    8  }, 
+            { 0xD8,    8  }, { 0xD9,    16 }, { 0xDA,    12 }, { 0xDC,    12 }, { 0xDE,    8  }, 
             { 0xDF,    16 }, { 0xE0,    12 }, { 0xE1,    12 }, { 0xE2,    8  }, { 0xE5,    16 }, 
             { 0xE6,    8  }, { 0xE7,    16 }, { 0xE8,    16 }, { 0xE9,    4  }, { 0xEA,    16 }, 
             { 0xEE,    8  }, { 0xEF,    16 }, { 0xF0,    12 }, { 0xF1,    12 }, { 0xF2,    8  }, 
@@ -1401,8 +1407,18 @@ namespace SharpBoy.Core
             { 0xF9,    8  }, { 0xFA,    16 }, { 0xFB,    4  }, { 0xFE,    8  }, { 0xFF,    16 }
         };
 
+        // Maps the cycle count of op codes that contain additional cycles when conditions are taken.
+        public readonly Dictionary<int, int> ConditionalCycleMap = new Dictionary<int, int>()
+        {
+            { 0x20,    12 }, { 0x28,    12 }, { 0x30,    12 }, { 0x38,    12 }, 
+            { 0xC0,    20 }, { 0xC2,    16 }, { 0xC4,    24 }, { 0xC8,    20 }, 
+            { 0xCA,    16 }, { 0xCC,    24 }, { 0xD0,    20 }, { 0xD2,    16 }, 
+            { 0xD4,    24 }, { 0xD8,    20 }, { 0xDA,    16 }, { 0xDC,    24 }
+        };
+
         private void Log(int opCode)
         {
+#if DEBUG
             StringBuilder output = new StringBuilder();
             output.Append(string.Format("OP = 0x{0:X4} ", opCode));
 
@@ -1425,6 +1441,7 @@ namespace SharpBoy.Core
 
             //Debug.WriteLine(output.ToString());
             log.WriteLine(output.ToString());
+#endif
         }
     }
 }

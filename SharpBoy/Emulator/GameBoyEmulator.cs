@@ -133,14 +133,18 @@ namespace SharpBoy.Emulator
                 int opCodeLookup = ExecuteOpCode();
 
                 int cycles;
-                if (cpu.CycleMap.TryGetValue(opCodeLookup, out cycles))
+
+                if (cpu.ConditionExecuted && cpu.ConditionalCycleMap.ContainsKey(opCodeLookup))
                 {
-                    currentCycles += cycles;
+                    cycles = cpu.ConditionalCycleMap[opCodeLookup];
+                    cpu.ConditionExecuted = false;
                 }
                 else
                 {
-                    missingCodes.Add(opCodeLookup);
+                    cycles = cpu.CycleMap[opCodeLookup];
                 }
+
+                currentCycles += cycles;
 
                 cpu.UpdateTimers(cycles);
                 cpu.UpdateGraphics(cycles);
