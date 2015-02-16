@@ -148,7 +148,7 @@ namespace SharpBoy.Emulator
 
                 cpu.UpdateTimers(cycles);
                 cpu.UpdateGraphics(cycles);
-                cpu.ProcessInterrupts();                 
+                cpu.ProcessInterrupts();
             }            
         }
 

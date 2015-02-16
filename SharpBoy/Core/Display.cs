@@ -221,8 +221,9 @@ namespace SharpBoy.Core
             {
                 bool mode8x16 = Util.IsBitSet(Memory, Util.LcdControlAddress, 2);
                 int spriteHeight = mode8x16 ? 16 : 8;
-                // Run through all the sprites in the Sprite Attribute Table
-                for (int i = 0; i < 160; i += 4)
+                // Run through all the sprites in the Sprite Attribute Table backwards,
+                // since the first sprites have higher priority for display.
+                for (int i = 156; i >= 0; i -= 4)
                 {
                     int yPosition = Memory[OamAddress + i] - 16;
                     int xPosition = Memory[OamAddress + i + 1] - 8;
