@@ -23,10 +23,10 @@ namespace SharpBoy.Cartridge
             {
                 if (IsRomBankRegion(address))
                 {
-                    int bankAddress = address + ((CurrentRomBank - 1) * 0x4000);
+                    int bankAddress = (address - 0x4000) + (CurrentRomBank * 0x4000);
                     return cartridge[bankAddress];
                 }
-                else if (IsRamBankRegion(address))
+                else if (IsRamBankRegion(address) && ExternalRamEnabled)
                 {
                     int bankAddress = (address - 0xA000) + (CurrentRamBank * 0x2000);
                     return ramBank[bankAddress];
@@ -55,21 +55,20 @@ namespace SharpBoy.Cartridge
                         CurrentRomBank = (byte)(CurrentRomBank | bankNumber);
                     }
                 }
-                else if (IsRamBankRegion(address))
+                else if (IsRamBankRegion(address) && ExternalRamEnabled)
                 {
                     int bankAddress = (address - 0xA000) + (CurrentRamBank * 0x2000);
                     ramBank[bankAddress] = value;
                 }
                 else if (IsUpperBankSwitchingRegion(address))
                 {
-                    int upperBits = value & 0x60;
                     if (BankMode == BankModes.Ram)
                     {
-                        UpdateRamBank(upperBits);
+                        CurrentRamBank = (byte)(value & 0x03);
                     }
                     else
                     {
-                        UpdateRomBank(upperBits);
+                        UpdateRomBank(value & 0x03);
                     }
                 }
                 else if (IsRomRamModeRegion(address))
@@ -92,14 +91,9 @@ namespace SharpBoy.Cartridge
             }
         }
 
-        private void UpdateRamBank(int value)
-        {
-            CurrentRamBank = (byte)(value >> 5);
-        }
-
         private void UpdateRomBank(int value)
         {
-            CurrentRomBank = (byte)(CurrentRomBank | value);
+            CurrentRomBank = (byte)(CurrentRomBank | (value << 5));
             if (CurrentRomBank == 0x20 || CurrentRomBank == 0x40 || CurrentRomBank == 0x60)
             {
                 CurrentRomBank++;
