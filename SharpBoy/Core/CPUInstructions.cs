@@ -24,12 +24,12 @@ namespace SharpBoy.Core
 
         private void LoadMemoryToRegister8Bit(ref byte toRegister, ushort address)
         {
-            toRegister = Memory[address];
+            toRegister = ReadMemory(address);
         }
 
         private void LoadValueToMemory8Bit(ushort address, byte value)
         {
-            Memory[address] = value;
+            WriteMemory(address, value);
         }
 
         private void LoadValueToRegister16Bit(Register register)
@@ -44,28 +44,29 @@ namespace SharpBoy.Core
 
         private void LoadMemoryToRegister16Bit(Register toRegister, ushort address)
         {
-            toRegister.Value = Memory[address];
+            toRegister.Value = ReadMemory(address);
         }
 
         private void LoadRegisterToMemory(Register register)
         {
             ushort address = ReadNextTwoValues();
-            Memory[address] = register.Low;
-            Memory[address + 1] = register.High;
+            WriteMemory(address, register.Low);
+            WriteMemory(address + 1, register.High);
         }
 
         // Reminder: Stack pointer starts in high memory and moves its way down.
         private void PushAddressOntoStack(ushort address)
         {
             // High byte first, then low byte.
-            Memory[--StackPointer.Value] = (byte)(address >> 8);
-            Memory[--StackPointer.Value] = (byte)(address & 0x00FF);
+            WriteMemory(--StackPointer.Value, (byte)(address >> 8));
+            WriteMemory(--StackPointer.Value, (byte)(address & 0x00FF));
+            IncrementCycles(4);
         }
 
         private void PopValuesIntoRegister(Register register)
         {
-            register.Low = Memory[StackPointer.Value++];
-            register.High = Memory[StackPointer.Value++];
+            register.Low = ReadMemory(StackPointer.Value++);
+            register.High = ReadMemory(StackPointer.Value++);
         }
 
         private void AddValueToRegisterA(byte value, bool addCarryFlag = false)
@@ -172,12 +173,13 @@ namespace SharpBoy.Core
 
         private void IncrementRegister16Bit(Register register)
         {
+            IncrementCycles(4);
             register.Value++;
         }
 
         private void IncrementMemory(ushort address)
         {
-            Memory[address]++;
+            WriteMemory(address, (byte)(ReadMemory(address) + 1));
             HandleIncrementFlags(Memory[address]);
         }
 
@@ -189,12 +191,13 @@ namespace SharpBoy.Core
 
         private void DecrementRegister16Bit(Register register)
         {
+            IncrementCycles(4);
             register.Value--;
         }
 
         private void DecrementMemory(ushort address)
         {
-            Memory[address]--;
+            WriteMemory(address, (byte)(ReadMemory(address) - 1));
             HandleDecrementFlags(Memory[address]);
         }
 
@@ -202,6 +205,7 @@ namespace SharpBoy.Core
         // http://forums.nesdev.com/viewtopic.php?p=42143&sid=c43232c8909ba277476955fd1e11db67#p42143
         private void LoadStackPointerToRegisterHL()
         {
+            IncrementCycles(4);
             byte value = ReadNextValue();
             ClearAllFlags();
 
@@ -268,12 +272,16 @@ namespace SharpBoy.Core
                 ClearFlag(FlagC);
 
             HL.Value = (ushort)result;
+
+            IncrementCycles(4);
         }
 
         // Without random forum posts like these, we'd be lost...
         // http://forums.nesdev.com/viewtopic.php?p=42143&sid=c43232c8909ba277476955fd1e11db67#p42143
         private void AddValueToStackPointer()
         {
+            IncrementCycles(4);
+            IncrementCycles(4);
             byte value = ReadNextValue();
             ClearAllFlags();
 
@@ -298,8 +306,8 @@ namespace SharpBoy.Core
 
         private void SwapNibbles(ushort address)
         {
-            byte value = Memory[address];
-            Memory[address] = GetSwappedByte(value);
+            byte value = ReadMemory(address);
+            WriteMemory(address, GetSwappedByte(value));
             HandleSwapFlags(Memory[address]);
         }
 
@@ -445,9 +453,9 @@ namespace SharpBoy.Core
         // RLC
         private void RotateLeftNoCarry(ushort address)
         {
-            byte value = Memory[address];
+            byte value = ReadMemory(address);
             RotateLeftNoCarry(ref value);
-            Memory[address] = value;
+            WriteMemory(address, value);
         }        
 
         // RL
@@ -465,9 +473,9 @@ namespace SharpBoy.Core
         // RL
         private void RotateLeftThroughCarry(ushort address)
         {
-            byte value = Memory[address];
+            byte value = ReadMemory(address);
             RotateLeftThroughCarry(ref value);
-            Memory[address] = value;
+            WriteMemory(address, value);
         }
 
         // RRC
@@ -482,9 +490,9 @@ namespace SharpBoy.Core
         // RRC
         private void RotateRightNoCarry(ushort address)
         {
-            byte value = Memory[address];
+            byte value = ReadMemory(address);
             RotateRightNoCarry(ref value);
-            Memory[address] = value;
+            WriteMemory(address, value);
         }
 
         // RR
@@ -502,9 +510,9 @@ namespace SharpBoy.Core
         // RR
         private void RotateRightThroughCarry(ushort address)
         {
-            byte value = Memory[address];
+            byte value = ReadMemory(address);
             RotateRightThroughCarry(ref value);
-            Memory[address] = value;
+            WriteMemory(address, value);
         }
 
         private void LogicalShiftLeft(ref byte register)
@@ -517,9 +525,9 @@ namespace SharpBoy.Core
 
         private void LogicalShiftLeft(ushort address)
         {
-            byte value = Memory[address];
+            byte value = ReadMemory(address);
             LogicalShiftLeft(ref value);
-            Memory[address] = value;
+            WriteMemory(address, value);
         }
 
         private void ArithmeticShiftRight(ref byte register)
@@ -536,9 +544,9 @@ namespace SharpBoy.Core
 
         private void ArithmeticShiftRight(ushort address)
         {
-            byte value = Memory[address];
+            byte value = ReadMemory(address);
             ArithmeticShiftRight(ref value);
-            Memory[address] = value;
+            WriteMemory(address, value);
         }
 
         private void LogicalShiftRight(ref byte register)
@@ -551,9 +559,9 @@ namespace SharpBoy.Core
 
         private void LogicalShiftRight(ushort address)
         {
-            byte value = Memory[address];
+            byte value = ReadMemory(address);
             LogicalShiftRight(ref value);
-            Memory[address] = value;
+            WriteMemory(address, value);
         }
 
         // Support for all registers except A when rotating/circular shifting.
@@ -583,12 +591,14 @@ namespace SharpBoy.Core
         }        
 
         private void Jump(ushort address)
-        {            
+        {
+            IncrementCycles(4);
             ProgramCounter = address;
         }
 
         private void Jump(sbyte offset)
         {
+            IncrementCycles(4);
             ProgramCounter = (ushort)(ProgramCounter + offset);
         }
 
@@ -597,6 +607,7 @@ namespace SharpBoy.Core
             if (condition)
             {
                 ProgramCounter = address;
+                IncrementCycles(4);
                 ConditionExecuted = true;
             }
             else
@@ -610,6 +621,7 @@ namespace SharpBoy.Core
             if (condition)
             {
                 ProgramCounter = (ushort)(ProgramCounter + offset);
+                IncrementCycles(4);
                 ConditionExecuted = true;
             }
             else
@@ -647,13 +659,15 @@ namespace SharpBoy.Core
 
         private void Return()
         {
-            byte low = Memory[StackPointer.Value++];            
-            byte high = Memory[StackPointer.Value++];
+            byte low = ReadMemory(StackPointer.Value++);
+            byte high = ReadMemory(StackPointer.Value++);
             ProgramCounter = (ushort)((high << 8) | low);
+            IncrementCycles(4);
         }
 
         private void ConditionallyReturn(bool condition)
         {
+            IncrementCycles(4);
             if (condition)
             {
                 Return();
@@ -716,12 +730,23 @@ namespace SharpBoy.Core
             return Util.IsBitSet(Memory[Util.LcdControlAddress], 7);
         }
 
-
         private void Halt()
         {
             Halted = true;
             if (interruptQueue.Count == 0)
                 interruptQueue.Enqueue(true);
+        }
+
+        private void SetBits(ushort address, byte bit)
+        {
+            byte value = ReadMemory(address);
+            WriteMemory(address, value |= (byte)(1 << bit));
+        }
+
+        private void ClearBits(ushort address, byte bit)
+        {
+            byte value = ReadMemory(address);
+            WriteMemory(address, value &= (byte)~(1 << bit));
         }
     }
 }
