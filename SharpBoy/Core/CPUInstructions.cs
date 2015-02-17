@@ -70,8 +70,8 @@ namespace SharpBoy.Core
 
         private void AddValueToRegisterA(byte value, bool addCarryFlag = false)
         {
-            int result = RegisterAF.High + value;
-            int halfCarryResult = (RegisterAF.High & 0x0F) + (value & 0x0F);
+            int result = AF.High + value;
+            int halfCarryResult = (AF.High & 0x0F) + (value & 0x0F);
             
             if (addCarryFlag && IsFlagSet(FlagC))
             {
@@ -90,13 +90,13 @@ namespace SharpBoy.Core
             if (result > 0xFF)
                 SetFlag(FlagC);
 
-            RegisterAF.High = (byte)result;
+            AF.High = (byte)result;
         }
 
         private void SubtractValueFromRegisterA(byte value, bool subCarryFlag = false)
         {
-            int result = RegisterAF.High - value;
-            int halfCarryResult = (RegisterAF.High & 0x0F) - (value & 0x0F);
+            int result = AF.High - value;
+            int halfCarryResult = (AF.High & 0x0F) - (value & 0x0F);
             if (subCarryFlag && IsFlagSet(FlagC))
             {
                 result--;
@@ -116,15 +116,15 @@ namespace SharpBoy.Core
             if (result < 0)
                 SetFlag(FlagC);
 
-            RegisterAF.High = (byte)result;
+            AF.High = (byte)result;
         }
 
         private void AndWithRegisterA(byte value)
         {
-            RegisterAF.High &= value;
+            AF.High &= value;
             ClearAllFlags();
 
-            if (RegisterAF.High == 0)
+            if (AF.High == 0)
                 SetFlag(FlagZ);
 
             SetFlag(FlagH);
@@ -132,19 +132,19 @@ namespace SharpBoy.Core
 
         private void OrWithRegisterA(byte value)
         {
-            RegisterAF.High |= value;
+            AF.High |= value;
             ClearAllFlags();
 
-            if (RegisterAF.High == 0)
+            if (AF.High == 0)
                 SetFlag(FlagZ);
         }
 
         private void XorWithRegisterA(byte value)
         {
-            RegisterAF.High ^= value;
+            AF.High ^= value;
             ClearAllFlags();
 
-            if (RegisterAF.High == 0)
+            if (AF.High == 0)
                 SetFlag(FlagZ);
         }
 
@@ -152,15 +152,15 @@ namespace SharpBoy.Core
         {
             ClearAllFlags();
 
-            if (RegisterAF.High == value)
+            if (AF.High == value)
                 SetFlag(FlagZ);
 
             SetFlag(FlagN);
 
-            if ((RegisterAF.High & 0x0F) < (value & 0x0F))
+            if ((AF.High & 0x0F) < (value & 0x0F))
                 SetFlag(FlagH);
 
-            if (RegisterAF.High < value)
+            if (AF.High < value)
                 SetFlag(FlagC);
         }
 
@@ -214,7 +214,7 @@ namespace SharpBoy.Core
             if (halfCarryResult > 0x0F)
                 SetFlag(FlagH);
 
-            RegisterHL.Value = (ushort)(StackPointer.Value + (sbyte)value);
+            HL.Value = (ushort)(StackPointer.Value + (sbyte)value);
         }
 
         private void HandleIncrementFlags(byte value)
@@ -252,11 +252,11 @@ namespace SharpBoy.Core
 
         private void AddValueToRegisterHL(Register register)
         {
-            int result = RegisterHL.Value + register.Value;
+            int result = HL.Value + register.Value;
 
             ClearFlag(FlagN);
 
-            int halfCarryResult = (RegisterHL.Value & 0xFFF) + (register.Value & 0xFFF);
+            int halfCarryResult = (HL.Value & 0xFFF) + (register.Value & 0xFFF);
             if (halfCarryResult > 0xFFF)
                 SetFlag(FlagH);
             else
@@ -267,7 +267,7 @@ namespace SharpBoy.Core
             else
                 ClearFlag(FlagC);
 
-            RegisterHL.Value = (ushort)result;
+            HL.Value = (ushort)result;
         }
 
         // Without random forum posts like these, we'd be lost...
@@ -324,7 +324,7 @@ namespace SharpBoy.Core
         private void DecimalAdjustRegisterA()
         {
             // Correction will result in either 0x00, 0x06, 0x60, or 0x66
-            short value = RegisterAF.High;
+            short value = AF.High;
 
             if (IsFlagSet(FlagN))
             {
@@ -356,12 +356,12 @@ namespace SharpBoy.Core
             if (value == 0)
                 SetFlag(FlagZ);
 
-            RegisterAF.High = (byte)value;
+            AF.High = (byte)value;
         }
 
         private void ComplementRegisterA()
         {
-            RegisterAF.High ^= 0xFF;
+            AF.High ^= 0xFF;
             SetFlag(FlagN);
             SetFlag(FlagH);
         }
@@ -386,8 +386,8 @@ namespace SharpBoy.Core
         // RLCA
         private void RotateALeftNoCarry()
         {
-            bool highBitSet = (RegisterAF.High & 0x80) == 0x80;
-            RegisterAF.High = (byte)((RegisterAF.High << 1) | (RegisterAF.High >> 7));
+            bool highBitSet = (AF.High & 0x80) == 0x80;
+            AF.High = (byte)((AF.High << 1) | (AF.High >> 7));
             ClearAllFlags();
             // If bit 7 was set before the rotate.
             if (highBitSet)
@@ -397,11 +397,11 @@ namespace SharpBoy.Core
         // RLA
         private void RotateALeftThroughCarry()
         {
-            bool highBitSet = (RegisterAF.High & 0x80) == 0x80;
-            RegisterAF.High <<= 1;
+            bool highBitSet = (AF.High & 0x80) == 0x80;
+            AF.High <<= 1;
             
             if (IsFlagSet(FlagC))
-                RegisterAF.High |= 0x01;
+                AF.High |= 0x01;
 
             ClearAllFlags();
             if (highBitSet)
@@ -411,8 +411,8 @@ namespace SharpBoy.Core
         // RRCA
         private void RotateARightNoCarry()
         {
-            bool lowBitSet = (RegisterAF.High & 0x01) == 0x01;
-            RegisterAF.High = (byte)((RegisterAF.High << 7) | (RegisterAF.High) >> 1);
+            bool lowBitSet = (AF.High & 0x01) == 0x01;
+            AF.High = (byte)((AF.High << 7) | (AF.High) >> 1);
             ClearAllFlags();
             // If bit 0 was set before the rotate.
             if (lowBitSet)
@@ -422,11 +422,11 @@ namespace SharpBoy.Core
         // RRA
         private void RotateARightThroughCarry()
         {
-            bool lowBitSet = (RegisterAF.High & 0x01) == 0x01;
-            RegisterAF.High >>= 1;
+            bool lowBitSet = (AF.High & 0x01) == 0x01;
+            AF.High >>= 1;
 
             if (IsFlagSet(FlagC))
-                RegisterAF.High |= 0x80;
+                AF.High |= 0x80;
 
             ClearAllFlags();
             if (lowBitSet)
@@ -692,23 +692,23 @@ namespace SharpBoy.Core
 
         private void ClearAllFlags()
         {
-            RegisterAF.Low = 0;
+            AF.Low = 0;
         }
 
         private void ClearFlag(byte flag)
         {
             // Bitwise operations like ~ are performed as an int, hence the cast
-            RegisterAF.Low &= (byte)~flag;
+            AF.Low &= (byte)~flag;
         }
 
         private void SetFlag(byte flag)
         {
-            RegisterAF.Low |= flag;
+            AF.Low |= flag;
         }
 
         private bool IsFlagSet(byte flag)
         {
-            return (RegisterAF.Low & flag) == flag;
+            return (AF.Low & flag) == flag;
         }
 
         private bool LCDEnabled()
