@@ -41,6 +41,7 @@ namespace SharpBoy.Core
         public int TimerCycles { get; private set; }
         public int CyclesPerDividerIncrement { get; private set; }
         public int DividerCycles { get; private set; }
+        public int CyclesExecuted { get; set; }
 
         public Display Display { get; private set; }
         private const int CyclesPerScanline = 456;
@@ -70,20 +71,40 @@ namespace SharpBoy.Core
 
         public byte ReadNextValue()
         {
+            IncrementCycles(4);
             byte value = Memory[ProgramCounter++];
             return value;
         }
 
         public ushort ReadNextTwoValues()
         {
-            byte low = Memory[ProgramCounter++];
+            byte low = ReadNextValue();
             ushort values = low;
-            byte high = Memory[ProgramCounter++];
+            byte high = ReadNextValue();
             values |= (ushort)(high << 8);
             return values;
         }
 
-        public void UpdateGraphics(int cycleCount)
+        private byte ReadMemory(ushort address)
+        {
+            IncrementCycles(4);
+            return Memory[address];
+        }
+
+        private void WriteMemory(int address, byte value)
+        {
+            IncrementCycles(4);
+            Memory[address] = value;
+        }
+
+        private void IncrementCycles(int amount)
+        {
+            CyclesExecuted += amount;
+            UpdateTimers(amount);
+            scanlineCycleCounter += amount;
+        }
+
+        public void UpdateGraphics()
         {
             if (!LCDEnabled())
             {
@@ -91,7 +112,6 @@ namespace SharpBoy.Core
                 return;
             }
 
-            scanlineCycleCounter += cycleCount;
             Display.UpdateLcdStatus(scanlineCycleCounter);
             while (scanlineCycleCounter >= CyclesPerScanline)
             {
@@ -205,6 +225,8 @@ namespace SharpBoy.Core
                     ProgramCounter = addressJump;
                     interruptQueue.Clear();
                     Halted = false;
+                    IncrementCycles(4);
+                    IncrementCycles(4);
                 }
                 else
                 {
@@ -226,9 +248,22 @@ namespace SharpBoy.Core
             } 
         }
 
-        public void ExecuteOpCode(byte opCode)
+        public void ExecuteOpCode()
         {
-            Log(opCode);
+            int opCode;
+            if (Halted)
+            {
+                opCode = 0x76;
+                IncrementCycles(4);
+            }
+            else
+            {
+                opCode = ReadNextValue();
+            }
+
+            if (opCode != 0xCB)
+                Log(opCode);
+
             switch (opCode)
             {
                 case 0x00: // Do nothing
@@ -499,7 +534,7 @@ namespace SharpBoy.Core
                     break;
                 case 0x85: AddValueToRegisterA(HL.Low);
                     break;
-                case 0x86: AddValueToRegisterA(Memory[HL.Value]);
+                case 0x86: AddValueToRegisterA(ReadMemory(HL.Value));
                     break;
                 case 0x87: AddValueToRegisterA(AF.High);
                     break;
@@ -515,7 +550,7 @@ namespace SharpBoy.Core
                     break;
                 case 0x8D: AddValueToRegisterA(HL.Low, true);
                     break;
-                case 0x8E: AddValueToRegisterA(Memory[HL.Value], true);
+                case 0x8E: AddValueToRegisterA(ReadMemory(HL.Value), true);
                     break;
                 case 0x8F: AddValueToRegisterA(AF.High, true);
                     break;
@@ -531,7 +566,7 @@ namespace SharpBoy.Core
                     break;
                 case 0x95: SubtractValueFromRegisterA(HL.Low);
                     break;
-                case 0x96: SubtractValueFromRegisterA(Memory[HL.Value]);
+                case 0x96: SubtractValueFromRegisterA(ReadMemory(HL.Value));
                     break;
                 case 0x97: SubtractValueFromRegisterA(AF.High);
                     break;
@@ -547,7 +582,7 @@ namespace SharpBoy.Core
                     break;
                 case 0x9D: SubtractValueFromRegisterA(HL.Low, true);
                     break;
-                case 0x9E: SubtractValueFromRegisterA(Memory[HL.Value], true);
+                case 0x9E: SubtractValueFromRegisterA(ReadMemory(HL.Value), true);
                     break;
                 case 0x9F: SubtractValueFromRegisterA(AF.High, true);
                     break;
@@ -563,7 +598,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xA5: AndWithRegisterA(HL.Low);
                     break;
-                case 0xA6: AndWithRegisterA(Memory[HL.Value]);
+                case 0xA6: AndWithRegisterA(ReadMemory(HL.Value));
                     break;
                 case 0xA7: AndWithRegisterA(AF.High);
                     break;
@@ -579,7 +614,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xAD: XorWithRegisterA(HL.Low);
                     break;
-                case 0xAE: XorWithRegisterA(Memory[HL.Value]);
+                case 0xAE: XorWithRegisterA(ReadMemory(HL.Value));
                     break;
                 case 0xAF: XorWithRegisterA(AF.High);
                     break;
@@ -595,7 +630,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xB5: OrWithRegisterA(HL.Low);
                     break;
-                case 0xB6: OrWithRegisterA(Memory[HL.Value]);
+                case 0xB6: OrWithRegisterA(ReadMemory(HL.Value));
                     break;
                 case 0xB7: OrWithRegisterA(AF.High);
                     break;
@@ -611,7 +646,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xBD: CompareWithRegisterA(HL.Low);
                     break;
-                case 0xBE: CompareWithRegisterA(Memory[HL.Value]);
+                case 0xBE: CompareWithRegisterA(ReadMemory(HL.Value));
                     break;
                 case 0xBF: CompareWithRegisterA(AF.High);
                     break;
@@ -637,7 +672,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xCA: ConditionallyJump(IsFlagSet(FlagZ), ReadNextTwoValues());
                     break;
-                case 0xCB: // This should always be handled as an extended op code.
+                case 0xCB: ExecuteCBOpCode();
                     break;
                 case 0xCC: ConditionallyCall(IsFlagSet(FlagZ), ReadNextTwoValues());
                     break;
@@ -687,7 +722,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xE8: AddValueToStackPointer();
                     break;
-                case 0xE9: Jump(HL.Value);
+                case 0xE9: IncrementCycles(-4); Jump(HL.Value);
                     break;
                 case 0xEA: LoadValueToMemory8Bit(ReadNextTwoValues(), AF.High);
                     break;
@@ -711,7 +746,7 @@ namespace SharpBoy.Core
                     break;
                 case 0xF8: LoadStackPointerToRegisterHL();
                     break;
-                case 0xF9: LoadRegisterToRegister16Bit(StackPointer, HL);
+                case 0xF9: IncrementCycles(4); LoadRegisterToRegister16Bit(StackPointer, HL);
                     break;
                 case 0xFA: LoadMemoryToRegister8Bit(ref AF.High, ReadNextTwoValues());
                     break;
@@ -725,522 +760,523 @@ namespace SharpBoy.Core
         }
 
         // For all op codes prefixed with 0xCB
-        public void ExecuteExtendedOpCode(ushort extended)
+        public void ExecuteCBOpCode()
         {
-            Log(extended);
-            switch (extended)
+            int opCode = ReadNextValue();
+            Log(0xCB00 | opCode);
+            switch (opCode)
             {
-                case 0xCB00: RotateLeftNoCarry(ref BC.High);
+                case 0x00: RotateLeftNoCarry(ref BC.High);
                     break;
-                case 0xCB01: RotateLeftNoCarry(ref BC.Low);
+                case 0x01: RotateLeftNoCarry(ref BC.Low);
                     break;
-                case 0xCB02: RotateLeftNoCarry(ref DE.High);
+                case 0x02: RotateLeftNoCarry(ref DE.High);
                     break;
-                case 0xCB03: RotateLeftNoCarry(ref DE.Low);
+                case 0x03: RotateLeftNoCarry(ref DE.Low);
                     break;
-                case 0xCB04: RotateLeftNoCarry(ref HL.High);
+                case 0x04: RotateLeftNoCarry(ref HL.High);
                     break;
-                case 0xCB05: RotateLeftNoCarry(ref HL.Low);
+                case 0x05: RotateLeftNoCarry(ref HL.Low);
                     break;
-                case 0xCB06: RotateLeftNoCarry(HL.Value);
+                case 0x06: RotateLeftNoCarry(HL.Value);
                     break;
-                case 0xCB07: RotateLeftNoCarry(ref AF.High);
+                case 0x07: RotateLeftNoCarry(ref AF.High);
                     break;
-                case 0xCB08: RotateRightNoCarry(ref BC.High);
+                case 0x08: RotateRightNoCarry(ref BC.High);
                     break;
-                case 0xCB09: RotateRightNoCarry(ref BC.Low);
+                case 0x09: RotateRightNoCarry(ref BC.Low);
                     break;
-                case 0xCB0A: RotateRightNoCarry(ref DE.High);
+                case 0x0A: RotateRightNoCarry(ref DE.High);
                     break;
-                case 0xCB0B: RotateRightNoCarry(ref DE.Low);
+                case 0x0B: RotateRightNoCarry(ref DE.Low);
                     break;
-                case 0xCB0C: RotateRightNoCarry(ref HL.High);
+                case 0x0C: RotateRightNoCarry(ref HL.High);
                     break;
-                case 0xCB0D: RotateRightNoCarry(ref HL.Low);
+                case 0x0D: RotateRightNoCarry(ref HL.Low);
                     break;
-                case 0xCB0E: RotateRightNoCarry(HL.Value);
+                case 0x0E: RotateRightNoCarry(HL.Value);
                     break;
-                case 0xCB0F: RotateRightNoCarry(ref AF.High);
+                case 0x0F: RotateRightNoCarry(ref AF.High);
                     break;
-                case 0xCB10: RotateLeftThroughCarry(ref BC.High);
+                case 0x10: RotateLeftThroughCarry(ref BC.High);
                     break;
-                case 0xCB11: RotateLeftThroughCarry(ref BC.Low);
+                case 0x11: RotateLeftThroughCarry(ref BC.Low);
                     break;
-                case 0xCB12: RotateLeftThroughCarry(ref DE.High);
+                case 0x12: RotateLeftThroughCarry(ref DE.High);
                     break;
-                case 0xCB13: RotateLeftThroughCarry(ref DE.Low);
+                case 0x13: RotateLeftThroughCarry(ref DE.Low);
                     break;
-                case 0xCB14: RotateLeftThroughCarry(ref HL.High);
+                case 0x14: RotateLeftThroughCarry(ref HL.High);
                     break;
-                case 0xCB15: RotateLeftThroughCarry(ref HL.Low);
+                case 0x15: RotateLeftThroughCarry(ref HL.Low);
                     break;
-                case 0xCB16: RotateLeftThroughCarry(HL.Value);
+                case 0x16: RotateLeftThroughCarry(HL.Value);
                     break;
-                case 0xCB17: RotateLeftThroughCarry(ref AF.High);
+                case 0x17: RotateLeftThroughCarry(ref AF.High);
                     break;
-                case 0xCB18: RotateRightThroughCarry(ref BC.High);
+                case 0x18: RotateRightThroughCarry(ref BC.High);
                     break;
-                case 0xCB19: RotateRightThroughCarry(ref BC.Low);
+                case 0x19: RotateRightThroughCarry(ref BC.Low);
                     break;
-                case 0xCB1A: RotateRightThroughCarry(ref DE.High);
+                case 0x1A: RotateRightThroughCarry(ref DE.High);
                     break;
-                case 0xCB1B: RotateRightThroughCarry(ref DE.Low);
+                case 0x1B: RotateRightThroughCarry(ref DE.Low);
                     break;
-                case 0xCB1C: RotateRightThroughCarry(ref HL.High);
+                case 0x1C: RotateRightThroughCarry(ref HL.High);
                     break;
-                case 0xCB1D: RotateRightThroughCarry(ref HL.Low);
+                case 0x1D: RotateRightThroughCarry(ref HL.Low);
                     break;
-                case 0xCB1E: RotateRightThroughCarry(HL.Value);
+                case 0x1E: RotateRightThroughCarry(HL.Value);
                     break;
-                case 0xCB1F: RotateRightThroughCarry(ref AF.High);
+                case 0x1F: RotateRightThroughCarry(ref AF.High);
                     break;
-                case 0xCB20: LogicalShiftLeft(ref BC.High);
+                case 0x20: LogicalShiftLeft(ref BC.High);
                     break;
-                case 0xCB21: LogicalShiftLeft(ref BC.Low);
+                case 0x21: LogicalShiftLeft(ref BC.Low);
                     break;
-                case 0xCB22: LogicalShiftLeft(ref DE.High);
+                case 0x22: LogicalShiftLeft(ref DE.High);
                     break;
-                case 0xCB23: LogicalShiftLeft(ref DE.Low);
+                case 0x23: LogicalShiftLeft(ref DE.Low);
                     break;
-                case 0xCB24: LogicalShiftLeft(ref HL.High);
+                case 0x24: LogicalShiftLeft(ref HL.High);
                     break;
-                case 0xCB25: LogicalShiftLeft(ref HL.Low);
+                case 0x25: LogicalShiftLeft(ref HL.Low);
                     break;
-                case 0xCB26: LogicalShiftLeft(HL.Value);
+                case 0x26: LogicalShiftLeft(HL.Value);
                     break;
-                case 0xCB27: LogicalShiftLeft(ref AF.High);
+                case 0x27: LogicalShiftLeft(ref AF.High);
                     break;
-                case 0xCB28: ArithmeticShiftRight(ref BC.High);
+                case 0x28: ArithmeticShiftRight(ref BC.High);
                     break;
-                case 0xCB29: ArithmeticShiftRight(ref BC.Low);
+                case 0x29: ArithmeticShiftRight(ref BC.Low);
                     break;
-                case 0xCB2A: ArithmeticShiftRight(ref DE.High);
+                case 0x2A: ArithmeticShiftRight(ref DE.High);
                     break;
-                case 0xCB2B: ArithmeticShiftRight(ref DE.Low);
+                case 0x2B: ArithmeticShiftRight(ref DE.Low);
                     break;
-                case 0xCB2C: ArithmeticShiftRight(ref HL.High);
+                case 0x2C: ArithmeticShiftRight(ref HL.High);
                     break;
-                case 0xCB2D: ArithmeticShiftRight(ref HL.Low);
+                case 0x2D: ArithmeticShiftRight(ref HL.Low);
                     break;
-                case 0xCB2E: ArithmeticShiftRight(HL.Value);
+                case 0x2E: ArithmeticShiftRight(HL.Value);
                     break;
-                case 0xCB2F: ArithmeticShiftRight(ref AF.High);
+                case 0x2F: ArithmeticShiftRight(ref AF.High);
                     break;
-                case 0xCB30: SwapNibbles(ref BC.High);
+                case 0x30: SwapNibbles(ref BC.High);
                     break;
-                case 0xCB31: SwapNibbles(ref BC.Low);
+                case 0x31: SwapNibbles(ref BC.Low);
                     break;
-                case 0xCB32: SwapNibbles(ref DE.High);
+                case 0x32: SwapNibbles(ref DE.High);
                     break;
-                case 0xCB33: SwapNibbles(ref DE.Low);
+                case 0x33: SwapNibbles(ref DE.Low);
                     break;
-                case 0xCB34: SwapNibbles(ref HL.High);
+                case 0x34: SwapNibbles(ref HL.High);
                     break;
-                case 0xCB35: SwapNibbles(ref HL.Low);
+                case 0x35: SwapNibbles(ref HL.Low);
                     break;
-                case 0xCB36: SwapNibbles(HL.Value);
+                case 0x36: SwapNibbles(HL.Value);
                     break;
-                case 0xCB37: SwapNibbles(ref AF.High);
+                case 0x37: SwapNibbles(ref AF.High);
                     break;
-                case 0xCB38: LogicalShiftRight(ref BC.High);
+                case 0x38: LogicalShiftRight(ref BC.High);
                     break;
-                case 0xCB39: LogicalShiftRight(ref BC.Low);
+                case 0x39: LogicalShiftRight(ref BC.Low);
                     break;
-                case 0xCB3A: LogicalShiftRight(ref DE.High);
+                case 0x3A: LogicalShiftRight(ref DE.High);
                     break;
-                case 0xCB3B: LogicalShiftRight(ref DE.Low);
+                case 0x3B: LogicalShiftRight(ref DE.Low);
                     break;
-                case 0xCB3C: LogicalShiftRight(ref HL.High);
+                case 0x3C: LogicalShiftRight(ref HL.High);
                     break;
-                case 0xCB3D: LogicalShiftRight(ref HL.Low);
+                case 0x3D: LogicalShiftRight(ref HL.Low);
                     break;
-                case 0xCB3E: LogicalShiftRight(HL.Value);
+                case 0x3E: LogicalShiftRight(HL.Value);
                     break;
-                case 0xCB3F: LogicalShiftRight(ref AF.High);
+                case 0x3F: LogicalShiftRight(ref AF.High);
                     break;
-                case 0xCB40: TestBit(BC.High, 0);
+                case 0x40: TestBit(BC.High, 0);
                     break;
-                case 0xCB41: TestBit(BC.Low, 0);
+                case 0x41: TestBit(BC.Low, 0);
                     break;
-                case 0xCB42: TestBit(DE.High, 0);
+                case 0x42: TestBit(DE.High, 0);
                     break;
-                case 0xCB43: TestBit(DE.Low, 0);
+                case 0x43: TestBit(DE.Low, 0);
                     break;
-                case 0xCB44: TestBit(HL.High, 0);
+                case 0x44: TestBit(HL.High, 0);
                     break;
-                case 0xCB45: TestBit(HL.Low, 0);
+                case 0x45: TestBit(HL.Low, 0);
                     break;
-                case 0xCB46: TestBit(Memory[HL.Value], 0);
+                case 0x46: TestBit(ReadMemory(HL.Value), 0);
                     break;
-                case 0xCB47: TestBit(AF.High, 0);
+                case 0x47: TestBit(AF.High, 0);
                     break;
-                case 0xCB48: TestBit(BC.High, 1);
+                case 0x48: TestBit(BC.High, 1);
                     break;
-                case 0xCB49: TestBit(BC.Low, 1);
+                case 0x49: TestBit(BC.Low, 1);
                     break;
-                case 0xCB4A: TestBit(DE.High, 1);
+                case 0x4A: TestBit(DE.High, 1);
                     break;
-                case 0xCB4B: TestBit(DE.Low, 1);
+                case 0x4B: TestBit(DE.Low, 1);
                     break;
-                case 0xCB4C: TestBit(HL.High, 1);
+                case 0x4C: TestBit(HL.High, 1);
                     break;
-                case 0xCB4D: TestBit(HL.Low, 1);
+                case 0x4D: TestBit(HL.Low, 1);
                     break;
-                case 0xCB4E: TestBit(Memory[HL.Value], 1);
+                case 0x4E: TestBit(ReadMemory(HL.Value), 1);
                     break;
-                case 0xCB4F: TestBit(AF.High, 1);
+                case 0x4F: TestBit(AF.High, 1);
                     break;
-                case 0xCB50: TestBit(BC.High, 2);
+                case 0x50: TestBit(BC.High, 2);
                     break;
-                case 0xCB51: TestBit(BC.Low, 2);
+                case 0x51: TestBit(BC.Low, 2);
                     break;
-                case 0xCB52: TestBit(DE.High, 2);
+                case 0x52: TestBit(DE.High, 2);
                     break;
-                case 0xCB53: TestBit(DE.Low, 2);
+                case 0x53: TestBit(DE.Low, 2);
                     break;
-                case 0xCB54: TestBit(HL.High, 2);
+                case 0x54: TestBit(HL.High, 2);
                     break;
-                case 0xCB55: TestBit(HL.Low, 2);
+                case 0x55: TestBit(HL.Low, 2);
                     break;
-                case 0xCB56: TestBit(Memory[HL.Value], 2);
+                case 0x56: TestBit(ReadMemory(HL.Value), 2);
                     break;
-                case 0xCB57: TestBit(AF.High, 2);
+                case 0x57: TestBit(AF.High, 2);
                     break;
-                case 0xCB58: TestBit(BC.High, 3);
+                case 0x58: TestBit(BC.High, 3);
                     break;
-                case 0xCB59: TestBit(BC.Low, 3);
+                case 0x59: TestBit(BC.Low, 3);
                     break;
-                case 0xCB5A: TestBit(DE.High, 3);
+                case 0x5A: TestBit(DE.High, 3);
                     break;
-                case 0xCB5B: TestBit(DE.Low, 3);
+                case 0x5B: TestBit(DE.Low, 3);
                     break;
-                case 0xCB5C: TestBit(HL.High, 3);
+                case 0x5C: TestBit(HL.High, 3);
                     break;
-                case 0xCB5D: TestBit(HL.Low, 3);
+                case 0x5D: TestBit(HL.Low, 3);
                     break;
-                case 0xCB5E: TestBit(Memory[HL.Value], 3);
+                case 0x5E: TestBit(ReadMemory(HL.Value), 3);
                     break;
-                case 0xCB5F: TestBit(AF.High, 3);
+                case 0x5F: TestBit(AF.High, 3);
                     break;
-                case 0xCB60: TestBit(BC.High, 4);
+                case 0x60: TestBit(BC.High, 4);
                     break;
-                case 0xCB61: TestBit(BC.Low, 4);
+                case 0x61: TestBit(BC.Low, 4);
                     break;
-                case 0xCB62: TestBit(DE.High, 4);
+                case 0x62: TestBit(DE.High, 4);
                     break;
-                case 0xCB63: TestBit(DE.Low, 4);
+                case 0x63: TestBit(DE.Low, 4);
                     break;
-                case 0xCB64: TestBit(HL.High, 4);
+                case 0x64: TestBit(HL.High, 4);
                     break;
-                case 0xCB65: TestBit(HL.Low, 4);
+                case 0x65: TestBit(HL.Low, 4);
                     break;
-                case 0xCB66: TestBit(Memory[HL.Value], 4);
+                case 0x66: TestBit(ReadMemory(HL.Value), 4);
                     break;
-                case 0xCB67: TestBit(AF.High, 4);
+                case 0x67: TestBit(AF.High, 4);
                     break;
-                case 0xCB68: TestBit(BC.High, 5);
+                case 0x68: TestBit(BC.High, 5);
                     break;
-                case 0xCB69: TestBit(BC.Low, 5);
+                case 0x69: TestBit(BC.Low, 5);
                     break;
-                case 0xCB6A: TestBit(DE.High, 5);
+                case 0x6A: TestBit(DE.High, 5);
                     break;
-                case 0xCB6B: TestBit(DE.Low, 5);
+                case 0x6B: TestBit(DE.Low, 5);
                     break;
-                case 0xCB6C: TestBit(HL.High, 5);
+                case 0x6C: TestBit(HL.High, 5);
                     break;
-                case 0xCB6D: TestBit(HL.Low, 5);
+                case 0x6D: TestBit(HL.Low, 5);
                     break;
-                case 0xCB6E: TestBit(Memory[HL.Value], 5);
+                case 0x6E: TestBit(ReadMemory(HL.Value), 5);
                     break;
-                case 0xCB6F: TestBit(AF.High, 5);
+                case 0x6F: TestBit(AF.High, 5);
                     break;
-                case 0xCB70: TestBit(BC.High, 6);
+                case 0x70: TestBit(BC.High, 6);
                     break;
-                case 0xCB71: TestBit(BC.Low, 6);
+                case 0x71: TestBit(BC.Low, 6);
                     break;
-                case 0xCB72: TestBit(DE.High, 6);
+                case 0x72: TestBit(DE.High, 6);
                     break;
-                case 0xCB73: TestBit(DE.Low, 6);
+                case 0x73: TestBit(DE.Low, 6);
                     break;
-                case 0xCB74: TestBit(HL.High, 6);
+                case 0x74: TestBit(HL.High, 6);
                     break;
-                case 0xCB75: TestBit(HL.Low, 6);
+                case 0x75: TestBit(HL.Low, 6);
                     break;
-                case 0xCB76: TestBit(Memory[HL.Value], 6);
+                case 0x76: TestBit(ReadMemory(HL.Value), 6);
                     break;
-                case 0xCB77: TestBit(AF.High, 6);
+                case 0x77: TestBit(AF.High, 6);
                     break;
-                case 0xCB78: TestBit(BC.High, 7);
+                case 0x78: TestBit(BC.High, 7);
                     break;
-                case 0xCB79: TestBit(BC.Low, 7);
+                case 0x79: TestBit(BC.Low, 7);
                     break;
-                case 0xCB7A: TestBit(DE.High, 7);
+                case 0x7A: TestBit(DE.High, 7);
                     break;
-                case 0xCB7B: TestBit(DE.Low, 7);
+                case 0x7B: TestBit(DE.Low, 7);
                     break;
-                case 0xCB7C: TestBit(HL.High, 7);
+                case 0x7C: TestBit(HL.High, 7);
                     break;
-                case 0xCB7D: TestBit(HL.Low, 7);
+                case 0x7D: TestBit(HL.Low, 7);
                     break;
-                case 0xCB7E: TestBit(Memory[HL.Value], 7);
+                case 0x7E: TestBit(ReadMemory(HL.Value), 7);
                     break;
-                case 0xCB7F: TestBit(AF.High, 7);
+                case 0x7F: TestBit(AF.High, 7);
                     break;
-                case 0xCB80: Util.ClearBits(ref BC.High, 0);
+                case 0x80: Util.ClearBits(ref BC.High, 0);
                     break;
-                case 0xCB81: Util.ClearBits(ref BC.Low, 0);
+                case 0x81: Util.ClearBits(ref BC.Low, 0);
                     break;
-                case 0xCB82: Util.ClearBits(ref DE.High, 0);
+                case 0x82: Util.ClearBits(ref DE.High, 0);
                     break;
-                case 0xCB83: Util.ClearBits(ref DE.Low, 0);
+                case 0x83: Util.ClearBits(ref DE.Low, 0);
                     break;
-                case 0xCB84: Util.ClearBits(ref HL.High, 0);
+                case 0x84: Util.ClearBits(ref HL.High, 0);
                     break;
-                case 0xCB85: Util.ClearBits(ref HL.Low, 0);
+                case 0x85: Util.ClearBits(ref HL.Low, 0);
                     break;
-                case 0xCB86: Util.ClearBits(Memory, HL.Value, 0);
+                case 0x86: ClearBits(HL.Value, 0);
                     break;
-                case 0xCB87: Util.ClearBits(ref AF.High, 0);
+                case 0x87: Util.ClearBits(ref AF.High, 0);
                     break;
-                case 0xCB88: Util.ClearBits(ref BC.High, 1);
+                case 0x88: Util.ClearBits(ref BC.High, 1);
                     break;
-                case 0xCB89: Util.ClearBits(ref BC.Low, 1);
+                case 0x89: Util.ClearBits(ref BC.Low, 1);
                     break;
-                case 0xCB8A: Util.ClearBits(ref DE.High, 1);
+                case 0x8A: Util.ClearBits(ref DE.High, 1);
                     break;
-                case 0xCB8B: Util.ClearBits(ref DE.Low, 1);
+                case 0x8B: Util.ClearBits(ref DE.Low, 1);
                     break;
-                case 0xCB8C: Util.ClearBits(ref HL.High, 1);
+                case 0x8C: Util.ClearBits(ref HL.High, 1);
                     break;
-                case 0xCB8D: Util.ClearBits(ref HL.Low, 1);
+                case 0x8D: Util.ClearBits(ref HL.Low, 1);
                     break;
-                case 0xCB8E: Util.ClearBits(Memory, HL.Value, 1);
+                case 0x8E: ClearBits(HL.Value, 1);
                     break;
-                case 0xCB8F: Util.ClearBits(ref AF.High, 1);
+                case 0x8F: Util.ClearBits(ref AF.High, 1);
                     break;
-                case 0xCB90: Util.ClearBits(ref BC.High, 2);
+                case 0x90: Util.ClearBits(ref BC.High, 2);
                     break;
-                case 0xCB91: Util.ClearBits(ref BC.Low, 2);
+                case 0x91: Util.ClearBits(ref BC.Low, 2);
                     break;
-                case 0xCB92: Util.ClearBits(ref DE.High, 2);
+                case 0x92: Util.ClearBits(ref DE.High, 2);
                     break;
-                case 0xCB93: Util.ClearBits(ref DE.Low, 2);
+                case 0x93: Util.ClearBits(ref DE.Low, 2);
                     break;
-                case 0xCB94: Util.ClearBits(ref HL.High, 2);
+                case 0x94: Util.ClearBits(ref HL.High, 2);
                     break;
-                case 0xCB95: Util.ClearBits(ref HL.Low, 2);
+                case 0x95: Util.ClearBits(ref HL.Low, 2);
                     break;
-                case 0xCB96: Util.ClearBits(Memory, HL.Value, 2);
+                case 0x96: ClearBits(HL.Value, 2);
                     break;
-                case 0xCB97: Util.ClearBits(ref AF.High, 2);
+                case 0x97: Util.ClearBits(ref AF.High, 2);
                     break;
-                case 0xCB98: Util.ClearBits(ref BC.High, 3);
+                case 0x98: Util.ClearBits(ref BC.High, 3);
                     break;
-                case 0xCB99: Util.ClearBits(ref BC.Low, 3);
+                case 0x99: Util.ClearBits(ref BC.Low, 3);
                     break;
-                case 0xCB9A: Util.ClearBits(ref DE.High, 3);
+                case 0x9A: Util.ClearBits(ref DE.High, 3);
                     break;
-                case 0xCB9B: Util.ClearBits(ref DE.Low, 3);
+                case 0x9B: Util.ClearBits(ref DE.Low, 3);
                     break;
-                case 0xCB9C: Util.ClearBits(ref HL.High, 3);
+                case 0x9C: Util.ClearBits(ref HL.High, 3);
                     break;
-                case 0xCB9D: Util.ClearBits(ref HL.Low, 3);
+                case 0x9D: Util.ClearBits(ref HL.Low, 3);
                     break;
-                case 0xCB9E: Util.ClearBits(Memory, HL.Value, 3);
+                case 0x9E: ClearBits(HL.Value, 3);
                     break;
-                case 0xCB9F: Util.ClearBits(ref AF.High, 3);
+                case 0x9F: Util.ClearBits(ref AF.High, 3);
                     break;
-                case 0xCBA0: Util.ClearBits(ref BC.High, 4);
+                case 0xA0: Util.ClearBits(ref BC.High, 4);
                     break;
-                case 0xCBA1: Util.ClearBits(ref BC.Low, 4);
+                case 0xA1: Util.ClearBits(ref BC.Low, 4);
                     break;
-                case 0xCBA2: Util.ClearBits(ref DE.High, 4);
+                case 0xA2: Util.ClearBits(ref DE.High, 4);
                     break;
-                case 0xCBA3: Util.ClearBits(ref DE.Low, 4);
+                case 0xA3: Util.ClearBits(ref DE.Low, 4);
                     break;
-                case 0xCBA4: Util.ClearBits(ref HL.High, 4);
+                case 0xA4: Util.ClearBits(ref HL.High, 4);
                     break;
-                case 0xCBA5: Util.ClearBits(ref HL.Low, 4);
+                case 0xA5: Util.ClearBits(ref HL.Low, 4);
                     break;
-                case 0xCBA6: Util.ClearBits(Memory, HL.Value, 4);
+                case 0xA6: ClearBits(HL.Value, 4);
                     break;
-                case 0xCBA7: Util.ClearBits(ref AF.High, 4);
+                case 0xA7: Util.ClearBits(ref AF.High, 4);
                     break;
-                case 0xCBA8: Util.ClearBits(ref BC.High, 5);
+                case 0xA8: Util.ClearBits(ref BC.High, 5);
                     break;
-                case 0xCBA9: Util.ClearBits(ref BC.Low, 5);
+                case 0xA9: Util.ClearBits(ref BC.Low, 5);
                     break;
-                case 0xCBAA: Util.ClearBits(ref DE.High, 5);
+                case 0xAA: Util.ClearBits(ref DE.High, 5);
                     break;
-                case 0xCBAB: Util.ClearBits(ref DE.Low, 5);
+                case 0xAB: Util.ClearBits(ref DE.Low, 5);
                     break;
-                case 0xCBAC: Util.ClearBits(ref HL.High, 5);
+                case 0xAC: Util.ClearBits(ref HL.High, 5);
                     break;
-                case 0xCBAD: Util.ClearBits(ref HL.Low, 5);
+                case 0xAD: Util.ClearBits(ref HL.Low, 5);
                     break;
-                case 0xCBAE: Util.ClearBits(Memory, HL.Value, 5);
+                case 0xAE: ClearBits(HL.Value, 5);
                     break;
-                case 0xCBAF: Util.ClearBits(ref AF.High, 5);
+                case 0xAF: Util.ClearBits(ref AF.High, 5);
                     break;
-                case 0xCBB0: Util.ClearBits(ref BC.High, 6);
+                case 0xB0: Util.ClearBits(ref BC.High, 6);
                     break;
-                case 0xCBB1: Util.ClearBits(ref BC.Low, 6);
+                case 0xB1: Util.ClearBits(ref BC.Low, 6);
                     break;
-                case 0xCBB2: Util.ClearBits(ref DE.High, 6);
+                case 0xB2: Util.ClearBits(ref DE.High, 6);
                     break;
-                case 0xCBB3: Util.ClearBits(ref DE.Low, 6);
+                case 0xB3: Util.ClearBits(ref DE.Low, 6);
                     break;
-                case 0xCBB4: Util.ClearBits(ref HL.High, 6);
+                case 0xB4: Util.ClearBits(ref HL.High, 6);
                     break;
-                case 0xCBB5: Util.ClearBits(ref HL.Low, 6);
+                case 0xB5: Util.ClearBits(ref HL.Low, 6);
                     break;
-                case 0xCBB6: Util.ClearBits(Memory, HL.Value, 6);
+                case 0xB6: ClearBits(HL.Value, 6);
                     break;
-                case 0xCBB7: Util.ClearBits(ref AF.High, 6);
+                case 0xB7: Util.ClearBits(ref AF.High, 6);
                     break;
-                case 0xCBB8: Util.ClearBits(ref BC.High, 7);
+                case 0xB8: Util.ClearBits(ref BC.High, 7);
                     break;
-                case 0xCBB9: Util.ClearBits(ref BC.Low, 7);
+                case 0xB9: Util.ClearBits(ref BC.Low, 7);
                     break;
-                case 0xCBBA: Util.ClearBits(ref DE.High, 7);
+                case 0xBA: Util.ClearBits(ref DE.High, 7);
                     break;
-                case 0xCBBB: Util.ClearBits(ref DE.Low, 7);
+                case 0xBB: Util.ClearBits(ref DE.Low, 7);
                     break;
-                case 0xCBBC: Util.ClearBits(ref HL.High, 7);
+                case 0xBC: Util.ClearBits(ref HL.High, 7);
                     break;
-                case 0xCBBD: Util.ClearBits(ref HL.Low, 7);
+                case 0xBD: Util.ClearBits(ref HL.Low, 7);
                     break;
-                case 0xCBBE: Util.ClearBits(Memory, HL.Value, 7);
+                case 0xBE: ClearBits(HL.Value, 7);
                     break;
-                case 0xCBBF: Util.ClearBits(ref AF.High, 7);
+                case 0xBF: Util.ClearBits(ref AF.High, 7);
                     break;
-                case 0xCBC0: Util.SetBits(ref BC.High, 0);
+                case 0xC0: Util.SetBits(ref BC.High, 0);
                     break;
-                case 0xCBC1: Util.SetBits(ref BC.Low, 0);
+                case 0xC1: Util.SetBits(ref BC.Low, 0);
                     break;
-                case 0xCBC2: Util.SetBits(ref DE.High, 0);
+                case 0xC2: Util.SetBits(ref DE.High, 0);
                     break;
-                case 0xCBC3: Util.SetBits(ref DE.Low, 0);
+                case 0xC3: Util.SetBits(ref DE.Low, 0);
                     break;
-                case 0xCBC4: Util.SetBits(ref HL.High, 0);
+                case 0xC4: Util.SetBits(ref HL.High, 0);
                     break;
-                case 0xCBC5: Util.SetBits(ref HL.Low, 0);
+                case 0xC5: Util.SetBits(ref HL.Low, 0);
                     break;               
-                case 0xCBC6: Util.SetBits(Memory, HL.Value, 0);
+                case 0xC6: SetBits(HL.Value, 0);
                     break;
-                case 0xCBC7: Util.SetBits(ref AF.High, 0);
+                case 0xC7: Util.SetBits(ref AF.High, 0);
                     break;
-                case 0xCBC8: Util.SetBits(ref BC.High, 1);
+                case 0xC8: Util.SetBits(ref BC.High, 1);
                     break;
-                case 0xCBC9: Util.SetBits(ref BC.Low, 1);
+                case 0xC9: Util.SetBits(ref BC.Low, 1);
                     break;
-                case 0xCBCA: Util.SetBits(ref DE.High, 1);
+                case 0xCA: Util.SetBits(ref DE.High, 1);
                     break;
-                case 0xCBCB: Util.SetBits(ref DE.Low, 1);
+                case 0xCB: Util.SetBits(ref DE.Low, 1);
                     break;
-                case 0xCBCC: Util.SetBits(ref HL.High, 1);
+                case 0xCC: Util.SetBits(ref HL.High, 1);
                     break;
-                case 0xCBCD: Util.SetBits(ref HL.Low, 1);
+                case 0xCD: Util.SetBits(ref HL.Low, 1);
                     break;
-                case 0xCBCE: Util.SetBits(Memory, HL.Value, 1);
+                case 0xCE: SetBits(HL.Value, 1);
                     break;
-                case 0xCBCF: Util.SetBits(ref AF.High, 1);
+                case 0xCF: Util.SetBits(ref AF.High, 1);
                     break;
-                case 0xCBD0: Util.SetBits(ref BC.High, 2);
+                case 0xD0: Util.SetBits(ref BC.High, 2);
                     break;
-                case 0xCBD1: Util.SetBits(ref BC.Low, 2);
+                case 0xD1: Util.SetBits(ref BC.Low, 2);
                     break;
-                case 0xCBD2: Util.SetBits(ref DE.High, 2);
+                case 0xD2: Util.SetBits(ref DE.High, 2);
                     break;
-                case 0xCBD3: Util.SetBits(ref DE.Low, 2);
+                case 0xD3: Util.SetBits(ref DE.Low, 2);
                     break;
-                case 0xCBD4: Util.SetBits(ref HL.High, 2);
+                case 0xD4: Util.SetBits(ref HL.High, 2);
                     break;
-                case 0xCBD5: Util.SetBits(ref HL.Low, 2);
+                case 0xD5: Util.SetBits(ref HL.Low, 2);
                     break;
-                case 0xCBD6: Util.SetBits(Memory, HL.Value, 2);
+                case 0xD6: SetBits(HL.Value, 2);
                     break;
-                case 0xCBD7: Util.SetBits(ref AF.High, 2);
+                case 0xD7: Util.SetBits(ref AF.High, 2);
                     break;
-                case 0xCBD8: Util.SetBits(ref BC.High, 3);
+                case 0xD8: Util.SetBits(ref BC.High, 3);
                     break;
-                case 0xCBD9: Util.SetBits(ref BC.Low, 3);
+                case 0xD9: Util.SetBits(ref BC.Low, 3);
                     break;
-                case 0xCBDA: Util.SetBits(ref DE.High, 3);
+                case 0xDA: Util.SetBits(ref DE.High, 3);
                     break;
-                case 0xCBDB: Util.SetBits(ref DE.Low, 3);
+                case 0xDB: Util.SetBits(ref DE.Low, 3);
                     break;
-                case 0xCBDC: Util.SetBits(ref HL.High, 3);
+                case 0xDC: Util.SetBits(ref HL.High, 3);
                     break;
-                case 0xCBDD: Util.SetBits(ref HL.Low, 3);
+                case 0xDD: Util.SetBits(ref HL.Low, 3);
                     break;
-                case 0xCBDE: Util.SetBits(Memory, HL.Value, 3);
+                case 0xDE: SetBits(HL.Value, 3);
                     break;
-                case 0xCBDF: Util.SetBits(ref AF.High, 3);
+                case 0xDF: Util.SetBits(ref AF.High, 3);
                     break;
-                case 0xCBE0: Util.SetBits(ref BC.High, 4);
+                case 0xE0: Util.SetBits(ref BC.High, 4);
                     break;
-                case 0xCBE1: Util.SetBits(ref BC.Low, 4);
+                case 0xE1: Util.SetBits(ref BC.Low, 4);
                     break;
-                case 0xCBE2: Util.SetBits(ref DE.High, 4);
+                case 0xE2: Util.SetBits(ref DE.High, 4);
                     break;
-                case 0xCBE3: Util.SetBits(ref DE.Low, 4);
+                case 0xE3: Util.SetBits(ref DE.Low, 4);
                     break;
-                case 0xCBE4: Util.SetBits(ref HL.High, 4);
+                case 0xE4: Util.SetBits(ref HL.High, 4);
                     break;
-                case 0xCBE5: Util.SetBits(ref HL.Low, 4);
+                case 0xE5: Util.SetBits(ref HL.Low, 4);
                     break;
-                case 0xCBE6: Util.SetBits(Memory, HL.Value, 4);
+                case 0xE6: SetBits(HL.Value, 4);
                     break;
-                case 0xCBE7: Util.SetBits(ref AF.High, 4);
+                case 0xE7: Util.SetBits(ref AF.High, 4);
                     break;
-                case 0xCBE8: Util.SetBits(ref BC.High, 5);
+                case 0xE8: Util.SetBits(ref BC.High, 5);
                     break;
-                case 0xCBE9: Util.SetBits(ref BC.Low, 5);
+                case 0xE9: Util.SetBits(ref BC.Low, 5);
                     break;
-                case 0xCBEA: Util.SetBits(ref DE.High, 5);
+                case 0xEA: Util.SetBits(ref DE.High, 5);
                     break;
-                case 0xCBEB: Util.SetBits(ref DE.Low, 5);
+                case 0xEB: Util.SetBits(ref DE.Low, 5);
                     break;
-                case 0xCBEC: Util.SetBits(ref HL.High, 5);
+                case 0xEC: Util.SetBits(ref HL.High, 5);
                     break;
-                case 0xCBED: Util.SetBits(ref HL.Low, 5);
+                case 0xED: Util.SetBits(ref HL.Low, 5);
                     break;
-                case 0xCBEE: Util.SetBits(Memory, HL.Value, 5);
+                case 0xEE: SetBits(HL.Value, 5);
                     break;
-                case 0xCBEF: Util.SetBits(ref AF.High, 5);
+                case 0xEF: Util.SetBits(ref AF.High, 5);
                     break;
-                case 0xCBF0: Util.SetBits(ref BC.High, 6);
+                case 0xF0: Util.SetBits(ref BC.High, 6);
                     break;
-                case 0xCBF1: Util.SetBits(ref BC.Low, 6);
+                case 0xF1: Util.SetBits(ref BC.Low, 6);
                     break;
-                case 0xCBF2: Util.SetBits(ref DE.High, 6);
+                case 0xF2: Util.SetBits(ref DE.High, 6);
                     break;
-                case 0xCBF3: Util.SetBits(ref DE.Low, 6);
+                case 0xF3: Util.SetBits(ref DE.Low, 6);
                     break;
-                case 0xCBF4: Util.SetBits(ref HL.High, 6);
+                case 0xF4: Util.SetBits(ref HL.High, 6);
                     break;
-                case 0xCBF5: Util.SetBits(ref HL.Low, 6);
+                case 0xF5: Util.SetBits(ref HL.Low, 6);
                     break;
-                case 0xCBF6: Util.SetBits(Memory, HL.Value, 6);
+                case 0xF6: SetBits(HL.Value, 6);
                     break;
-                case 0xCBF7: Util.SetBits(ref AF.High, 6);
+                case 0xF7: Util.SetBits(ref AF.High, 6);
                     break;
-                case 0xCBF8: Util.SetBits(ref BC.High, 7);
+                case 0xF8: Util.SetBits(ref BC.High, 7);
                     break;
-                case 0xCBF9: Util.SetBits(ref BC.Low, 7);
+                case 0xF9: Util.SetBits(ref BC.Low, 7);
                     break;
-                case 0xCBFA: Util.SetBits(ref DE.High, 7);
+                case 0xFA: Util.SetBits(ref DE.High, 7);
                     break;
-                case 0xCBFB: Util.SetBits(ref DE.Low, 7);
+                case 0xFB: Util.SetBits(ref DE.Low, 7);
                     break;
-                case 0xCBFC: Util.SetBits(ref HL.High, 7);
+                case 0xFC: Util.SetBits(ref HL.High, 7);
                     break;
-                case 0xCBFD: Util.SetBits(ref HL.Low, 7);
+                case 0xFD: Util.SetBits(ref HL.Low, 7);
                     break;
-                case 0xCBFE: Util.SetBits(Memory, HL.Value, 7);
+                case 0xFE: SetBits(HL.Value, 7);
                     break;
-                case 0xCBFF: Util.SetBits(ref AF.High, 7);
+                case 0xFF: Util.SetBits(ref AF.High, 7);
                     break;
             }
         }
@@ -1300,125 +1336,12 @@ namespace SharpBoy.Core
             }
 
             return mbc;
-        }        
-
-        // Maps the cycle count that each op code takes.
-        public readonly Dictionary<int, int> CycleMap = new Dictionary<int, int>()
-        {
-            { 0x00,    4  }, { 0x01,    12 }, { 0x02,    8  }, { 0x03,    8  }, { 0x04,    4  }, 
-            { 0x05,    4  }, { 0x06,    8  }, { 0x07,    4  }, { 0x08,    20 }, { 0x09,    8  }, 
-            { 0x0A,    8  }, { 0x0B,    8  }, { 0x0C,    4  }, { 0x0D,    4  }, { 0x0E,    8  }, 
-            { 0x0F,    4  }, { 0x10,    0  }, { 0x11,    12 }, { 0x12,    8  }, { 0x13,    8  }, 
-            { 0x14,    4  }, { 0x15,    4  }, { 0x16,    8  }, { 0x17,    4  }, { 0x18,    12 }, 
-            { 0x19,    8  }, { 0x1A,    8  }, { 0x1B,    8  }, { 0x1C,    4  }, { 0x1D,    4  }, 
-            { 0x1E,    8  }, { 0x1F,    4  }, { 0x20,    8  }, { 0x21,    12 }, { 0x22,    8  }, 
-            { 0x23,    8  }, { 0x24,    4  }, { 0x25,    4  }, { 0x26,    8  }, { 0x27,    4  }, 
-            { 0x28,    8  }, { 0x29,    8  }, { 0x2A,    8  }, { 0x2B,    8  }, { 0x2C,    4  }, 
-            { 0x2D,    4  }, { 0x2E,    8  }, { 0x2F,    4  }, { 0x30,    8  }, { 0x31,    12 }, 
-            { 0x32,    8  }, { 0x33,    8  }, { 0x34,    12 }, { 0x35,    12 }, { 0x36,    12 }, 
-            { 0x37,    4  }, { 0x38,    8  }, { 0x39,    8  }, { 0x3A,    8  }, { 0x3B,    8  }, 
-            { 0x3C,    4  }, { 0x3D,    4  }, { 0x3E,    8  }, { 0x3F,    4  }, { 0x40,    4  }, 
-            { 0x41,    4  }, { 0x42,    4  }, { 0x43,    4  }, { 0x44,    4  }, { 0x45,    4  }, 
-            { 0x46,    8  }, { 0x47,    4  }, { 0x48,    4  }, { 0x49,    4  }, { 0x4A,    4  }, 
-            { 0x4B,    4  }, { 0x4C,    4  }, { 0x4D,    4  }, { 0x4E,    8  }, { 0x4F,    4  }, 
-            { 0x50,    4  }, { 0x51,    4  }, { 0x52,    4  }, { 0x53,    4  }, { 0x54,    4  }, 
-            { 0x55,    4  }, { 0x56,    8  }, { 0x57,    4  }, { 0x58,    4  }, { 0x59,    4  }, 
-            { 0x5A,    4  }, { 0x5B,    4  }, { 0x5C,    4  }, { 0x5D,    4  }, { 0x5E,    8  }, 
-            { 0x5F,    4  }, { 0x60,    4  }, { 0x61,    4  }, { 0x62,    4  }, { 0x63,    4  }, 
-            { 0x64,    4  }, { 0x65,    4  }, { 0x66,    8  }, { 0x67,    4  }, { 0x68,    4  }, 
-            { 0x69,    4  }, { 0x6A,    4  }, { 0x6B,    4  }, { 0x6C,    4  }, { 0x6D,    4  }, 
-            { 0x6E,    8  }, { 0x6F,    4  }, { 0x70,    8  }, { 0x71,    8  }, { 0x72,    8  }, 
-            { 0x73,    8  }, { 0x74,    8  }, { 0x75,    8  }, { 0x76,    4  }, { 0x77,    8  }, 
-            { 0x78,    4  }, { 0x79,    4  }, { 0x7A,    4  }, { 0x7B,    4  }, { 0x7C,    4  }, 
-            { 0x7D,    4  }, { 0x7E,    8  }, { 0x7F,    4  }, { 0x80,    4  }, { 0x81,    4  }, 
-            { 0x82,    4  }, { 0x83,    4  }, { 0x84,    4  }, { 0x85,    4  }, { 0x86,    8  }, 
-            { 0x87,    4  }, { 0x88,    4  }, { 0x89,    4  }, { 0x8A,    4  }, { 0x8B,    4  }, 
-            { 0x8C,    4  }, { 0x8D,    4  }, { 0x8E,    8  }, { 0x8F,    4  }, { 0x90,    4  }, 
-            { 0x91,    4  }, { 0x92,    4  }, { 0x93,    4  }, { 0x94,    4  }, { 0x95,    4  }, 
-            { 0x96,    8  }, { 0x97,    4  }, { 0x98,    4  }, { 0x99,    4  }, { 0x9A,    4  }, 
-            { 0x9B,    4  }, { 0x9C,    4  }, { 0x9D,    4  }, { 0x9E,    8  }, { 0x9F,    4  }, 
-            { 0xA0,    4  }, { 0xA1,    4  }, { 0xA2,    4  }, { 0xA3,    4  }, { 0xA4,    4  }, 
-            { 0xA5,    4  }, { 0xA6,    8  }, { 0xA7,    4  }, { 0xA8,    4  }, { 0xA9,    4  }, 
-            { 0xAA,    4  }, { 0xAB,    4  }, { 0xAC,    4  }, { 0xAD,    4  }, { 0xAE,    8  }, 
-            { 0xAF,    4  }, { 0xB0,    4  }, { 0xB1,    4  }, { 0xB2,    4  }, { 0xB3,    4  }, 
-            { 0xB4,    4  }, { 0xB5,    4  }, { 0xB6,    8  }, { 0xB7,    4  }, { 0xB8,    4  }, 
-            { 0xB9,    4  }, { 0xBA,    4  }, { 0xBB,    4  }, { 0xBC,    4  }, { 0xBD,    4  }, 
-            { 0xBE,    8  }, { 0xBF,    4  }, { 0xC0,    8  }, { 0xC1,    12 }, { 0xC2,    12 }, 
-            { 0xC3,    16 }, { 0xC4,    12 }, { 0xC5,    16 }, { 0xC6,    8  }, { 0xC7,    16 }, 
-            { 0xC8,    8  }, { 0xC9,    16 }, { 0xCA,    12 }, { 0xCB00,  8  }, { 0xCB01,  8  }, 
-            { 0xCB02,  8  }, { 0xCB03,  8  }, { 0xCB04,  8  }, { 0xCB05,  8  }, { 0xCB06,  16 }, 
-            { 0xCB07,  8  }, { 0xCB08,  8  }, { 0xCB09,  8  }, { 0xCB0A,  8  }, { 0xCB0B,  8  }, 
-            { 0xCB0C,  8  }, { 0xCB0D,  8  }, { 0xCB0E,  16 }, { 0xCB0F,  8  }, { 0xCB10,  8  }, 
-            { 0xCB11,  8  }, { 0xCB12,  8  }, { 0xCB13,  8  }, { 0xCB14,  8  }, { 0xCB15,  8  }, 
-            { 0xCB16,  16 }, { 0xCB17,  8  }, { 0xCB18,  8  }, { 0xCB19,  8  }, { 0xCB1A,  8  }, 
-            { 0xCB1B,  8  }, { 0xCB1C,  8  }, { 0xCB1D,  8  }, { 0xCB1E,  16 }, { 0xCB1F,  8  }, 
-            { 0xCB20,  8  }, { 0xCB21,  8  }, { 0xCB22,  8  }, { 0xCB23,  8  }, { 0xCB24,  8  }, 
-            { 0xCB25,  8  }, { 0xCB26,  16 }, { 0xCB27,  8  }, { 0xCB28,  8  }, { 0xCB29,  8  }, 
-            { 0xCB2A,  8  }, { 0xCB2B,  8  }, { 0xCB2C,  8  }, { 0xCB2D,  8  }, { 0xCB2E,  16 }, 
-            { 0xCB2F,  8  }, { 0xCB30,  8  }, { 0xCB31,  8  }, { 0xCB32,  8  }, { 0xCB33,  8  }, 
-            { 0xCB34,  8  }, { 0xCB35,  8  }, { 0xCB36,  16 }, { 0xCB37,  8  }, { 0xCB38,  8  }, 
-            { 0xCB39,  8  }, { 0xCB3A,  8  }, { 0xCB3B,  8  }, { 0xCB3C,  8  }, { 0xCB3D,  8  }, 
-            { 0xCB3E,  16 }, { 0xCB3F,  8  }, { 0xCB40,  8  }, { 0xCB41,  8  }, { 0xCB42,  8  }, 
-            { 0xCB43,  8  }, { 0xCB44,  8  }, { 0xCB45,  8  }, { 0xCB46,  12 }, { 0xCB47,  8  }, 
-            { 0xCB48,  8  }, { 0xCB49,  8  }, { 0xCB4A,  8  }, { 0xCB4B,  8  }, { 0xCB4C,  8  }, 
-            { 0xCB4D,  8  }, { 0xCB4E,  12 }, { 0xCB4F,  8  }, { 0xCB50,  8  }, { 0xCB51,  8  }, 
-            { 0xCB52,  8  }, { 0xCB53,  8  }, { 0xCB54,  8  }, { 0xCB55,  8  }, { 0xCB56,  12 }, 
-            { 0xCB57,  8  }, { 0xCB58,  8  }, { 0xCB59,  8  }, { 0xCB5A,  8  }, { 0xCB5B,  8  }, 
-            { 0xCB5C,  8  }, { 0xCB5D,  8  }, { 0xCB5E,  12 }, { 0xCB5F,  8  }, { 0xCB60,  8  }, 
-            { 0xCB61,  8  }, { 0xCB62,  8  }, { 0xCB63,  8  }, { 0xCB64,  8  }, { 0xCB65,  8  }, 
-            { 0xCB66,  12 }, { 0xCB67,  8  }, { 0xCB68,  8  }, { 0xCB69,  8  }, { 0xCB6A,  8  }, 
-            { 0xCB6B,  8  }, { 0xCB6C,  8  }, { 0xCB6D,  8  }, { 0xCB6E,  12 }, { 0xCB6F,  8  }, 
-            { 0xCB70,  8  }, { 0xCB71,  8  }, { 0xCB72,  8  }, { 0xCB73,  8  }, { 0xCB74,  8  }, 
-            { 0xCB75,  8  }, { 0xCB76,  12 }, { 0xCB77,  8  }, { 0xCB78,  8  }, { 0xCB79,  8  }, 
-            { 0xCB7A,  8  }, { 0xCB7B,  8  }, { 0xCB7C,  8  }, { 0xCB7D,  8  }, { 0xCB7E,  12 }, 
-            { 0xCB7F,  8  }, { 0xCB80,  8  }, { 0xCB81,  8  }, { 0xCB82,  8  }, { 0xCB83,  8  }, 
-            { 0xCB84,  8  }, { 0xCB85,  8  }, { 0xCB86,  16 }, { 0xCB87,  8  }, { 0xCB88,  8  }, 
-            { 0xCB89,  8  }, { 0xCB8A,  8  }, { 0xCB8B,  8  }, { 0xCB8C,  8  }, { 0xCB8D,  8  }, 
-            { 0xCB8E,  16 }, { 0xCB8F,  8  }, { 0xCB90,  8  }, { 0xCB91,  8  }, { 0xCB92,  8  }, 
-            { 0xCB93,  8  }, { 0xCB94,  8  }, { 0xCB95,  8  }, { 0xCB96,  16 }, { 0xCB97,  8  }, 
-            { 0xCB98,  8  }, { 0xCB99,  8  }, { 0xCB9A,  8  }, { 0xCB9B,  8  }, { 0xCB9C,  8  }, 
-            { 0xCB9D,  8  }, { 0xCB9E,  16 }, { 0xCB9F,  8  }, { 0xCBA0,  8  }, { 0xCBA1,  8  }, 
-            { 0xCBA2,  8  }, { 0xCBA3,  8  }, { 0xCBA4,  8  }, { 0xCBA5,  8  }, { 0xCBA6,  16 }, 
-            { 0xCBA7,  8  }, { 0xCBA8,  8  }, { 0xCBA9,  8  }, { 0xCBAA,  8  }, { 0xCBAB,  8  }, 
-            { 0xCBAC,  8  }, { 0xCBAD,  8  }, { 0xCBAE,  16 }, { 0xCBAF,  8  }, { 0xCBB0,  8  }, 
-            { 0xCBB1,  8  }, { 0xCBB2,  8  }, { 0xCBB3,  8  }, { 0xCBB4,  8  }, { 0xCBB5,  8  }, 
-            { 0xCBB6,  16 }, { 0xCBB7,  8  }, { 0xCBB8,  8  }, { 0xCBB9,  8  }, { 0xCBBA,  8  }, 
-            { 0xCBBB,  8  }, { 0xCBBC,  8  }, { 0xCBBD,  8  }, { 0xCBBE,  16 }, { 0xCBBF,  8  }, 
-            { 0xCBC0,  8  }, { 0xCBC1,  8  }, { 0xCBC2,  8  }, { 0xCBC3,  8  }, { 0xCBC4,  8  }, 
-            { 0xCBC5,  8  }, { 0xCBC6,  16 }, { 0xCBC7,  8  }, { 0xCBC8,  8  }, { 0xCBC9,  8  }, 
-            { 0xCBCA,  8  }, { 0xCBCB,  8  }, { 0xCBCC,  8  }, { 0xCBCD,  8  }, { 0xCBCE,  16 }, 
-            { 0xCBCF,  8  }, { 0xCBD0,  8  }, { 0xCBD1,  8  }, { 0xCBD2,  8  }, { 0xCBD3,  8  }, 
-            { 0xCBD4,  8  }, { 0xCBD5,  8  }, { 0xCBD6,  16 }, { 0xCBD7,  8  }, { 0xCBD8,  8  }, 
-            { 0xCBD9,  8  }, { 0xCBDA,  8  }, { 0xCBDB,  8  }, { 0xCBDC,  8  }, { 0xCBDD,  8  }, 
-            { 0xCBDE,  16 }, { 0xCBDF,  8  }, { 0xCBE0,  8  }, { 0xCBE1,  8  }, { 0xCBE2,  8  }, 
-            { 0xCBE3,  8  }, { 0xCBE4,  8  }, { 0xCBE5,  8  }, { 0xCBE6,  16 }, { 0xCBE7,  8  }, 
-            { 0xCBE8,  8  }, { 0xCBE9,  8  }, { 0xCBEA,  8  }, { 0xCBEB,  8  }, { 0xCBEC,  8  }, 
-            { 0xCBED,  8  }, { 0xCBEE,  16 }, { 0xCBEF,  8  }, { 0xCBF0,  8  }, { 0xCBF1,  8  }, 
-            { 0xCBF2,  8  }, { 0xCBF3,  8  }, { 0xCBF4,  8  }, { 0xCBF5,  8  }, { 0xCBF6,  16 }, 
-            { 0xCBF7,  8  }, { 0xCBF8,  8  }, { 0xCBF9,  8  }, { 0xCBFA,  8  }, { 0xCBFB,  8  }, 
-            { 0xCBFC,  8  }, { 0xCBFD,  8  }, { 0xCBFE,  16 }, { 0xCBFF,  8  }, { 0xCC,    12 }, 
-            { 0xCD,    24 }, { 0xCE,    8  }, { 0xCF,    16 }, { 0xD0,    8  }, { 0xD1,    12 }, 
-            { 0xD2,    12 }, { 0xD4,    12 }, { 0xD5,    16 }, { 0xD6,    8  }, { 0xD7,    16 }, 
-            { 0xD8,    8  }, { 0xD9,    16 }, { 0xDA,    12 }, { 0xDC,    12 }, { 0xDE,    8  }, 
-            { 0xDF,    16 }, { 0xE0,    12 }, { 0xE1,    12 }, { 0xE2,    8  }, { 0xE5,    16 }, 
-            { 0xE6,    8  }, { 0xE7,    16 }, { 0xE8,    16 }, { 0xE9,    4  }, { 0xEA,    16 }, 
-            { 0xEE,    8  }, { 0xEF,    16 }, { 0xF0,    12 }, { 0xF1,    12 }, { 0xF2,    8  }, 
-            { 0xF3,    4  }, { 0xF5,    16 }, { 0xF6,    8  }, { 0xF7,    16 }, { 0xF8,    12 }, 
-            { 0xF9,    8  }, { 0xFA,    16 }, { 0xFB,    4  }, { 0xFE,    8  }, { 0xFF,    16 }
-        };
-
-        // Maps the cycle count of op codes that contain additional cycles when conditions are taken.
-        public readonly Dictionary<int, int> ConditionalCycleMap = new Dictionary<int, int>()
-        {
-            { 0x20,    12 }, { 0x28,    12 }, { 0x30,    12 }, { 0x38,    12 }, 
-            { 0xC0,    20 }, { 0xC2,    16 }, { 0xC4,    24 }, { 0xC8,    20 }, 
-            { 0xCA,    16 }, { 0xCC,    24 }, { 0xD0,    20 }, { 0xD2,    16 }, 
-            { 0xD4,    24 }, { 0xD8,    20 }, { 0xDA,    16 }, { 0xDC,    24 }
-        };
+        }
 
         private void Log(int opCode)
         {
 #if DEBUG
+            return;
             StringBuilder output = new StringBuilder();
 
             output.Append(string.Format("OP = 0x{0:X4} ", opCode));
@@ -1426,14 +1349,14 @@ namespace SharpBoy.Core
             output.Append(string.Format("Mem[PC] = 0x{0:X2} ", Memory[ProgramCounter]));
             output.Append(string.Format("SP = 0x{0:X4} ", StackPointer.Value));
             output.Append(string.Format("Mem[SP] = 0x{0:X2} ", Memory[StackPointer.Value]));
-            output.Append(string.Format("A = 0x{0:X2} ", RegisterAF.High));
-            output.Append(string.Format("F = 0x{0:X2} ", RegisterAF.Low));
-            output.Append(string.Format("B = 0x{0:X2} ", RegisterBC.High));
-            output.Append(string.Format("C = 0x{0:X2} ", RegisterBC.Low));
-            output.Append(string.Format("D = 0x{0:X2} ", RegisterDE.High));
-            output.Append(string.Format("E = 0x{0:X2} ", RegisterDE.Low));
-            output.Append(string.Format("H = 0x{0:X2} ", RegisterHL.High));
-            output.Append(string.Format("L = 0x{0:X2} ", RegisterHL.Low));
+            output.Append(string.Format("A = 0x{0:X2} ", AF.High));
+            output.Append(string.Format("F = 0x{0:X2} ", AF.Low));
+            output.Append(string.Format("B = 0x{0:X2} ", BC.High));
+            output.Append(string.Format("C = 0x{0:X2} ", BC.Low));
+            output.Append(string.Format("D = 0x{0:X2} ", DE.High));
+            output.Append(string.Format("E = 0x{0:X2} ", DE.Low));
+            output.Append(string.Format("H = 0x{0:X2} ", HL.High));
+            output.Append(string.Format("L = 0x{0:X2} ", HL.Low));
             output.Append(string.Format("Mem[TIMA] = {0} ", Memory[Util.TimerCounterAddress]));
             output.Append(string.Format("TimerCycles = {0}", TimerCycles));
 

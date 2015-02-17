@@ -124,57 +124,14 @@ namespace SharpBoy.Emulator
 
         private void UpdateFrame()
         {
-            int currentCycles = 0;
-
-            while (currentCycles < cyclesPerFrame)
+            cpu.CyclesExecuted = Math.Max(0, cpu.CyclesExecuted - cyclesPerFrame);
+            int currentCycles = cpu.CyclesExecuted;
+            while (cpu.CyclesExecuted < cyclesPerFrame)
             {
-                int opCodeLookup = ExecuteOpCode();
-
-                int cycles;
-
-                if (cpu.ConditionExecuted && cpu.ConditionalCycleMap.ContainsKey(opCodeLookup))
-                {
-                    cycles = cpu.ConditionalCycleMap[opCodeLookup];
-                    cpu.ConditionExecuted = false;
-                }
-                else
-                {
-                    cycles = cpu.CycleMap[opCodeLookup];
-                }
-
-                currentCycles += cycles;
-
-                cpu.UpdateTimers(cycles);
-                cpu.UpdateGraphics(cycles);
+                cpu.ExecuteOpCode();
+                cpu.UpdateGraphics();
                 cpu.ProcessInterrupts();
             }            
-        }
-
-        private int ExecuteOpCode()
-        {
-            if (cpu.Halted)
-            {
-                // Return the HALT op code
-                return 0x76;
-            }
-
-            byte opCode = cpu.ReadNextValue();
-            int opCodeLookup;
-
-            if (opCode != 0xCB)
-            {
-                opCodeLookup = opCode;
-                cpu.ExecuteOpCode(opCode);
-            }
-            else
-            {
-                ushort extendedOpCode = (ushort)(opCode << 8);
-                extendedOpCode |= cpu.ReadNextValue();
-                cpu.ExecuteExtendedOpCode(extendedOpCode);
-                opCodeLookup = extendedOpCode;
-            }
-
-            return opCodeLookup;
         }
 
         private void Render()
