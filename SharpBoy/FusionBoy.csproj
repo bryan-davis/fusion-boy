@@ -7,7 +7,7 @@
     <ProjectGuid>{F5E2B7F7-E8D4-45DF-A764-CB41EF47DFF2}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SharpBoy</RootNamespace>
+    <RootNamespace>FusionBoy</RootNamespace>
     <AssemblyName>SharpBoy</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

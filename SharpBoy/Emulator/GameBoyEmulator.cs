@@ -4,13 +4,13 @@
  * Refer to the license.txt file included
  */
 
-using SharpBoy.Core;
+using FusionBoy.Core;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
-namespace SharpBoy.Emulator
+namespace FusionBoy.Emulator
 {
     public class GameBoyEmulator : ViewModelBase, IEmulator
     {

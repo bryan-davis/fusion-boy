@@ -4,10 +4,10 @@
  * Refer to the license.txt file included
  */
 
-using SharpBoy.Cartridge;
+using FusionBoy.Cartridge;
 using System;
 
-namespace SharpBoy.Core
+namespace FusionBoy.Core
 {
     public class Display
     {

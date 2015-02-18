@@ -4,11 +4,11 @@
  * Refer to the license.txt file included
  */
 
-using SharpBoy.Core;
+using FusionBoy.Core;
 using System.Linq;
 using System.Text;
 
-namespace SharpBoy.Cartridge
+namespace FusionBoy.Cartridge
 {
     // Based on http://problemkaputt.de/pandocs.htm#thecartridgeheader
     public class CartridgeInfo
