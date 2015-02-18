@@ -6,7 +6,7 @@
 
 using System;
 
-namespace SharpBoy.Core
+namespace FusionBoy.Core
 {
     public enum Interrupts : byte
     {

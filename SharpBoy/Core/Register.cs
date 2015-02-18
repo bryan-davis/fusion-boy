@@ -7,7 +7,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace SharpBoy.Core
+namespace FusionBoy.Core
 {
     /*
      * Reference: http://problemkaputt.de/pandocs.htm#cpuregistersandflags

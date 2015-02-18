@@ -7,7 +7,7 @@
 using System;
 using System.Windows.Input;
 
-namespace SharpBoy.Emulator
+namespace FusionBoy.Emulator
 {
     public delegate void RenderEventHandler(byte[] data);
 

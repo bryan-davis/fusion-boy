@@ -6,7 +6,7 @@
 
 using System.ComponentModel;
 
-namespace SharpBoy.Emulator
+namespace FusionBoy.Emulator
 {
     public abstract class ViewModelBase : INotifyPropertyChanged
     {

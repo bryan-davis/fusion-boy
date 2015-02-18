@@ -4,14 +4,14 @@
  * Refer to the license.txt file included
  */
 
-using SharpBoy.Cartridge;
+using FusionBoy.Cartridge;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
 
-namespace SharpBoy.Core
+namespace FusionBoy.Core
 {
     [Serializable]
     public partial class CPU

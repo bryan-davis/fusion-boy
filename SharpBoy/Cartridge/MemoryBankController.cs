@@ -4,13 +4,13 @@
  * Refer to the license.txt file included
  */
 
-using SharpBoy.Core;
+using FusionBoy.Core;
 using System;
 using System.IO;
 
 using System.Diagnostics;
 
-namespace SharpBoy.Cartridge
+namespace FusionBoy.Cartridge
 {
     public abstract class MemoryBankController
     {

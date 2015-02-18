@@ -6,7 +6,7 @@
 
 using System;
 using System.IO;
-namespace SharpBoy.Cartridge
+namespace FusionBoy.Cartridge
 {
     // http://problemkaputt.de/pandocs.htm#mbc1max2mbyteromandor32kbyteram
     public class MBC1 : MemoryBankController

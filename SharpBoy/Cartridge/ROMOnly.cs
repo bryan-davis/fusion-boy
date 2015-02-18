@@ -7,7 +7,7 @@
 using System;
 using System.IO;
 
-namespace SharpBoy.Cartridge
+namespace FusionBoy.Cartridge
 {
     public class ROMOnly : MemoryBankController
     {

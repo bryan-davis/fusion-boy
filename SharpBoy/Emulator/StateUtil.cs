@@ -4,12 +4,12 @@
  * Refer to the license.txt file included
  */
 
-using SharpBoy.Core;
+using FusionBoy.Core;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace SharpBoy.Emulator
+namespace FusionBoy.Emulator
 {
     static class StateUtil
     {

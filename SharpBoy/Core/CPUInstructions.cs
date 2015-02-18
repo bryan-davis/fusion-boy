@@ -4,7 +4,7 @@
  * Refer to the license.txt file included
  */
 
-namespace SharpBoy.Core
+namespace FusionBoy.Core
 {
     /*
      * This portion of the class contains all supporting methods used by the
