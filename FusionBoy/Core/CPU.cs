@@ -1325,13 +1325,13 @@ namespace FusionBoy.Core
             switch (cartType)
             {
                 case CartType.RomOnly:
-                    mbc = new ROMOnly(fileStream);
+                    mbc = new RomOnly(fileStream);
                     break;
                 case CartType.MBC1:
-                    mbc = new MBC1(fileStream);
+                    mbc = new Mbc1(fileStream);
                     break;
                 case CartType.MBC2:
-                    mbc = new MBC2(fileStream);
+                    mbc = new Mbc2(fileStream);
                     break;
             }
 

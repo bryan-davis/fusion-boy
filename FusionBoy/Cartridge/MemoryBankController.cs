@@ -13,8 +13,7 @@ using System.Diagnostics;
 namespace FusionBoy.Cartridge
 {
     public abstract class MemoryBankController
-    {
-        protected const int MemorySize = 0x10000; // 65536 - 64K        
+    {  
         protected byte[] data;
         protected byte[] cartridge;
         protected byte[] ramBank;
@@ -37,14 +36,8 @@ namespace FusionBoy.Cartridge
             cartridge = new byte[fileStream.Length];
             fileStream.Read(cartridge, 0x0, cartridge.Length);
 
-            data = new byte[MemorySize];
-
+            data = new byte[64 * 1024];
             ramBank = new byte[32 * 1024];
-
-            if (cartridge.Length >= 0xBFFF)
-            {
-                Array.Copy(cartridge, 0xA000, ramBank, 0x00, 0x1FFF);
-            }
 
             CurrentRomBank = 1;
             CurrentRamBank = 0;

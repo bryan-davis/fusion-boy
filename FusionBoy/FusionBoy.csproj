@@ -63,9 +63,9 @@
     </Compile>
     <Compile Include="Cartridge\CartridgeInfo.cs" />
     <Compile Include="Cartridge\CartType.cs" />
-    <Compile Include="Cartridge\MBC2.cs" />
-    <Compile Include="Cartridge\ROMOnly.cs" />
-    <Compile Include="Cartridge\MBC1.cs" />
+    <Compile Include="Cartridge\Mbc2.cs" />
+    <Compile Include="Cartridge\RomOnly.cs" />
+    <Compile Include="Cartridge\Mbc1.cs" />
     <Compile Include="Core\CPU.cs" />
     <Compile Include="Cartridge\MemoryBankController.cs" />
     <Compile Include="Core\CPUInstructions.cs" />
