@@ -9,9 +9,9 @@ using System.IO;
 namespace FusionBoy.Cartridge
 {
     // http://problemkaputt.de/pandocs.htm#mbc1max2mbyteromandor32kbyteram
-    public class MBC1 : MemoryBankController
+    public class Mbc1 : MemoryBankController
     {
-        public MBC1(Stream fileStream) : base(fileStream)
+        public Mbc1(Stream fileStream) : base(fileStream)
         {
             // The first 16K (MBC0) is always read into the beginning of memory
             Array.Copy(cartridge, data, 0x4000);
@@ -23,13 +23,28 @@ namespace FusionBoy.Cartridge
             {
                 if (IsRomBankRegion(address))
                 {
-                    int bankAddress = (address - 0x4000) + (CurrentRomBank * 0x4000);
-                    return cartridge[bankAddress];
+                    if (BankMode == BankModes.Rom)
+                    {
+                        int bankAddress = (address & 0x3FFF) + (CurrentRomBank * 0x4000);
+                        return cartridge[bankAddress];
+                    }
+                    else
+                    {
+                        int bankAddress = (address & 0x3FFF) + ((CurrentRomBank & 0x1F) * 0x4000);
+                        return cartridge[bankAddress];
+                    }
                 }
                 else if (IsRamBankRegion(address) && ExternalRamEnabled)
                 {
-                    int bankAddress = (address - 0xA000) + (CurrentRamBank * 0x2000);
-                    return ramBank[bankAddress];
+                    if (BankMode == BankModes.Rom)
+                    {
+                        return ramBank[address & 0x1FFF];
+                    }
+                    else
+                    {
+                        int bankAddress = (address & 0x1FFF) + (CurrentRamBank * 0x2000);
+                        return ramBank[bankAddress];
+                    }
                 }
                 else
                 {
@@ -53,12 +68,20 @@ namespace FusionBoy.Cartridge
                     {
                         CurrentRomBank &= 0xE0; // Clear the bottom 5 bits
                         CurrentRomBank = (byte)(CurrentRomBank | bankNumber);
+                        AdjustRomBank();
                     }
                 }
                 else if (IsRamBankRegion(address) && ExternalRamEnabled)
                 {
-                    int bankAddress = (address - 0xA000) + (CurrentRamBank * 0x2000);
-                    ramBank[bankAddress] = value;
+                    if (BankMode == BankModes.Rom)
+                    {
+                        ramBank[address & 0x1FFF] = value;
+                    }
+                    else
+                    {
+                        int bankAddress = (address & 0x1FFF) + (CurrentRamBank * 0x2000);
+                        ramBank[bankAddress] = value;
+                    }
                 }
                 else if (IsUpperBankSwitchingRegion(address))
                 {
@@ -68,7 +91,8 @@ namespace FusionBoy.Cartridge
                     }
                     else
                     {
-                        UpdateRomBank(value & 0x03);
+                        CurrentRomBank = (byte)(CurrentRomBank | (value << 5));
+                        AdjustRomBank();
                     }
                 }
                 else if (IsRomRamModeRegion(address))
@@ -91,9 +115,8 @@ namespace FusionBoy.Cartridge
             }
         }
 
-        private void UpdateRomBank(int value)
+        private void AdjustRomBank()
         {
-            CurrentRomBank = (byte)(CurrentRomBank | (value << 5));
             if (CurrentRomBank == 0x20 || CurrentRomBank == 0x40 || CurrentRomBank == 0x60)
             {
                 CurrentRomBank++;

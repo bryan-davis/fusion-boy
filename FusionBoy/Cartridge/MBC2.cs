@@ -9,9 +9,9 @@ using System.IO;
 
 namespace FusionBoy.Cartridge
 {
-    public class MBC2 : MemoryBankController
+    public class Mbc2 : MemoryBankController
     {
-        public MBC2(Stream fileStream) : base(fileStream)
+        public Mbc2(Stream fileStream) : base(fileStream)
         {
             // The first 16K (MBC0) is always read into the beginning of memory
             Array.Copy(cartridge, data, 0x4000);
