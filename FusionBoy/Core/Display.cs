@@ -228,8 +228,7 @@ namespace FusionBoy.Core
                     int yPosition = Memory[OamAddress + i] - 16;
                     int xPosition = Memory[OamAddress + i + 1] - 8;
 
-                    if (SpriteInScreenBounds(xPosition, yPosition) &&
-                        SpriteInScanlineRange(line, yPosition, spriteHeight))
+                    if (SpriteInScanlineRange(line, yPosition, spriteHeight))
                     {
                         byte tileIndex = Memory[OamAddress + i + 2];
                         if (mode8x16)
@@ -261,22 +260,25 @@ namespace FusionBoy.Core
 
             for (int column = 0; column < 8; column++)
             {
-                int tilePixelColumn = column;
-                if (Util.IsBitSet(attributes, 5))   // X is flipped
-                    tilePixelColumn = Math.Abs(tilePixelColumn - 7);
+                if (SpritePixelInScreenBounds(x + column, currentLine))
+                {
+                    int tilePixelColumn = column;
+                    if (Util.IsBitSet(attributes, 5))   // X is flipped
+                        tilePixelColumn = Math.Abs(tilePixelColumn - 7);
 
-                byte colorValue = GetColorValue(byte1, byte2, tilePixelColumn);
-                // Sprite data 0 is transparent.
-                if (colorValue == 0)
-                    continue;
-                byte color = GetColor(colorValue, paletteAddress);
+                    byte colorValue = GetColorValue(byte1, byte2, tilePixelColumn);
+                    // Sprite data 0 is transparent.
+                    if (colorValue == 0)
+                        continue;
+                    byte color = GetColor(colorValue, paletteAddress);
 
-                int graphicsIndex = Util.Convert2dTo1d(x + column, currentLine, Width);
-                // Sprite is behind the background, unless the background pixel is white.
-                if (Util.IsBitSet(attributes, 7) && ScreenData[graphicsIndex] != Palette[0])
-                    continue;
+                    int graphicsIndex = Util.Convert2dTo1d(x + column, currentLine, Width);
+                    // Sprite is behind the background, unless the background pixel is white.
+                    if (Util.IsBitSet(attributes, 7) && ScreenData[graphicsIndex] != Palette[0])
+                        continue;
 
-                ScreenData[graphicsIndex] = color;
+                    ScreenData[graphicsIndex] = color;
+                }
             }
         }
 
@@ -286,7 +288,7 @@ namespace FusionBoy.Core
             return (spriteYPosition <= line && line < spriteYPosition + spriteHeight);
         }
 
-        private bool SpriteInScreenBounds(int x, int y)
+        private bool SpritePixelInScreenBounds(int x, int y)
         {
             return ((0 <= x && x < Width) && (0 <= y && y < Height));
         }
