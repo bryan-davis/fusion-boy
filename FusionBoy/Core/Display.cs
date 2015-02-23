@@ -18,7 +18,14 @@ namespace FusionBoy.Core
         private const int Mode3Bounds = 172;
         private const int TileSize = 16;    // 16 bytes per tile
         private const int MaxScrollAmount = 256;
-        private const int OamAddress = 0xFE00;
+
+        private struct Sprite
+        {
+            public int x;
+            public int y;
+            public int tileIndex;
+            public byte attributes;
+        }
 
         // Black, Dark Grey, Light Grey, White
         private readonly byte[] Palette = { 255, 192, 96, 0 };
@@ -221,30 +228,32 @@ namespace FusionBoy.Core
             {
                 bool mode8x16 = Util.IsBitSet(Memory, Util.LcdControlAddress, 2);
                 int spriteHeight = mode8x16 ? 16 : 8;
+
+                Sprite sprite;
                 // Run through all the sprites in the Sprite Attribute Table backwards,
                 // since the first sprites have higher priority for display.
                 for (int i = 156; i >= 0; i -= 4)
                 {
-                    int yPosition = Memory[OamAddress + i] - 16;
-                    int xPosition = Memory[OamAddress + i + 1] - 8;
+                    sprite.y = Memory[Util.OamAddress + i] - 16;
+                    sprite.x = Memory[Util.OamAddress + i + 1] - 8;
 
-                    if (SpriteInScanlineRange(line, yPosition, spriteHeight))
+                    if (SpriteInScanlineRange(line, sprite.y, spriteHeight))
                     {
-                        byte tileIndex = Memory[OamAddress + i + 2];
+                        sprite.tileIndex = Memory[Util.OamAddress + i + 2];
                         if (mode8x16)
-                            tileIndex &= 0xFE;
+                            sprite.tileIndex &= 0xFE;
 
-                        byte attributes = Memory[OamAddress + i + 3];
-                        RenderSprite(xPosition, yPosition, line, tileIndex, attributes, spriteHeight);
+                        sprite.attributes = Memory[Util.OamAddress + i + 3];
+                        RenderSprite(line, spriteHeight, sprite);
                     }
                 }
             }
         }
 
-        private void RenderSprite(int x, int y, int currentLine, int tileIndex, byte attributes, int spriteHeight)
+        private void RenderSprite(int currentLine, int spriteHeight, Sprite sprite)
         {
-            int tilePixelRow = currentLine - y;
-            if (Util.IsBitSet(attributes, 6))   // Y is flipped
+            int tilePixelRow = currentLine - sprite.y;
+            if (Util.IsBitSet(sprite.attributes, 6))   // Y is flipped
             {
                 // If we were originally going to draw row 3 of the tile and the tile
                 // is 8 pixels high, then we'd be drawing row 5 (0-based indexing) 
@@ -253,17 +262,17 @@ namespace FusionBoy.Core
             }
 
             int tileLineOffset = tilePixelRow * 2;
-            int tileAddress = 0x8000 + (tileIndex * TileSize);
+            int tileAddress = 0x8000 + (sprite.tileIndex * TileSize);
             byte byte1 = Memory[tileAddress + tileLineOffset];
             byte byte2 = Memory[tileAddress + tileLineOffset + 1];
-            int paletteAddress = Util.IsBitSet(attributes, 4) ? 0xFF49 : 0xFF48;
+            int paletteAddress = Util.IsBitSet(sprite.attributes, 4) ? 0xFF49 : 0xFF48;
 
             for (int column = 0; column < 8; column++)
             {
-                if (SpritePixelInScreenBounds(x + column, currentLine))
+                if (SpritePixelInScreenBounds(sprite.x + column, currentLine))
                 {
                     int tilePixelColumn = column;
-                    if (Util.IsBitSet(attributes, 5))   // X is flipped
+                    if (Util.IsBitSet(sprite.attributes, 5))   // X is flipped
                         tilePixelColumn = Math.Abs(tilePixelColumn - 7);
 
                     byte colorValue = GetColorValue(byte1, byte2, tilePixelColumn);
@@ -272,9 +281,9 @@ namespace FusionBoy.Core
                         continue;
                     byte color = GetColor(colorValue, paletteAddress);
 
-                    int graphicsIndex = Util.Convert2dTo1d(x + column, currentLine, Width);
+                    int graphicsIndex = Util.Convert2dTo1d(sprite.x + column, currentLine, Width);
                     // Sprite is behind the background, unless the background pixel is white.
-                    if (Util.IsBitSet(attributes, 7) && ScreenData[graphicsIndex] != Palette[0])
+                    if (Util.IsBitSet(sprite.attributes, 7) && ScreenData[graphicsIndex] != Palette[0])
                         continue;
 
                     ScreenData[graphicsIndex] = color;

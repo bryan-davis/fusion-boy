@@ -25,6 +25,7 @@ namespace FusionBoy.Core
         public const ushort ScrollXAddress = 0xFF43;            // SCX
         public const ushort ScanlineAddress = 0xFF44;           // LY
         public const ushort DmaAddress = 0xFF46;                // DMA
+        public const ushort OamAddress = 0xFE00;                // Sprite Attribute Table
 
         public static bool IsBitSet(byte value, byte bit)
         {
