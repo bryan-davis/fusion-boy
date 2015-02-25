@@ -65,7 +65,6 @@ namespace FusionBoy.Core
         // http://problemkaputt.de/pandocs.htm#lcdstatusregister
         public void UpdateLcdStatus(int scanlineCycleCounter)
         {
-            int previousMode = Memory[Util.LcdStatAddress] & 3;
             bool interruptRequested = false;
             int currentLine = Memory[Util.ScanlineAddress];
 
@@ -98,8 +97,7 @@ namespace FusionBoy.Core
                 }
             }
 
-            int currentMode = Memory[Util.LcdStatAddress] & 3;
-            if (currentMode != previousMode && interruptRequested)
+            if (interruptRequested)
             {
                 // Request LCD Stat interrupt
                 Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
@@ -119,7 +117,6 @@ namespace FusionBoy.Core
                 {
                     // Request LCD Stat interrupt
                     Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
-                    Util.SetBits(Memory, 0xFF0F, (byte)Interrupts.lcdStat);
                 }
             }
             else
