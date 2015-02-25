@@ -608,11 +608,6 @@ namespace FusionBoy.Core
             {
                 ProgramCounter = address;
                 IncrementCycles(4);
-                ConditionExecuted = true;
-            }
-            else
-            {
-                ConditionExecuted = false;
             }
         }
 
@@ -622,11 +617,6 @@ namespace FusionBoy.Core
             {
                 ProgramCounter = (ushort)(ProgramCounter + offset);
                 IncrementCycles(4);
-                ConditionExecuted = true;
-            }
-            else
-            {
-                ConditionExecuted = false;
             }
         }
 
@@ -642,11 +632,6 @@ namespace FusionBoy.Core
             if (condition)
             {
                 Call(address);
-                ConditionExecuted = true;
-            }
-            else
-            {
-                ConditionExecuted = false;
             }
         }
 
@@ -671,11 +656,6 @@ namespace FusionBoy.Core
             if (condition)
             {
                 Return();
-                ConditionExecuted = true;
-            }
-            else
-            {
-                ConditionExecuted = false;
             }
         }
 

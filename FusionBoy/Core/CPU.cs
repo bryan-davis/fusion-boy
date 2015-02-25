@@ -33,8 +33,6 @@ namespace FusionBoy.Core
         public CartridgeInfo CartInfo { get; private set; }
         public bool Halted { get; private set; }
         public bool Stopped { get; private set; }
-        // TODO: Is there a nicer way to check for this?
-        public bool ConditionExecuted { get; set; }
 
         public bool TimerEnabled { get; private set; }
         public int CyclesPerTimerIncrement { get; private set; }
@@ -1294,7 +1292,6 @@ namespace FusionBoy.Core
             Halted = false;
             Stopped = false;
             TimerEnabled = false;
-            ConditionExecuted = false;
             TimerCycles = 0;
             DividerCycles = 0;
             scanlineCycleCounter = 0;
