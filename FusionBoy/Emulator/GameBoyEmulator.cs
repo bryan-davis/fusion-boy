@@ -129,7 +129,6 @@ namespace FusionBoy.Emulator
             while (cpu.CyclesExecuted < cyclesPerFrame)
             {
                 cpu.ExecuteOpCode();
-                cpu.UpdateGraphics();
                 cpu.ProcessInterrupts();
             }            
         }

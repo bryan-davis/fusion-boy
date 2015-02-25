@@ -99,17 +99,18 @@ namespace FusionBoy.Core
         {
             CyclesExecuted += amount;
             UpdateTimers(amount);
-            scanlineCycleCounter += amount;
+            UpdateGraphics(amount);
         }
 
-        public void UpdateGraphics()
+        private void UpdateGraphics(int cycleCount)
         {
             if (!LCDEnabled())
             {
-                ResetLCDStatus();
+                ResetLCDStatus(cycleCount);
                 return;
             }
 
+            scanlineCycleCounter += cycleCount;
             Display.UpdateLcdStatus(scanlineCycleCounter);
             while (scanlineCycleCounter >= CyclesPerScanline)
             {
@@ -118,9 +119,9 @@ namespace FusionBoy.Core
             }
         }
 
-        private void ResetLCDStatus()
+        private void ResetLCDStatus(int cycleCount)
         {
-            scanlineCycleCounter = 0;
+            scanlineCycleCounter = cycleCount;
             Memory[Util.ScanlineAddress] = 0;
 
             // Reset the mode to 01 http://problemkaputt.de/pandocs.htm#lcdstatusregister
