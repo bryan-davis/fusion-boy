@@ -168,7 +168,7 @@ namespace FusionBoy.Cartridge
             joypad ^= 0xFF;
 
             // TODO: Implement proper joypad state
-            byte joypadState = 0xFF;
+            byte joypadState = 0xFF;            
 
             // Looking for direction keys
             if (!Util.IsBitSet(joypad, 4))

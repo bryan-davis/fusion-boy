@@ -11,10 +11,10 @@ namespace FusionBoy.Core
     public enum Interrupts : byte
     {
         // Bit positions, not bit values
-        vBlank = 0,
-        lcdStat = 1,
-        timer = 2,
-        serial = 3,
-        joypad = 4
+        VBlank = 0,
+        LcdStat = 1,
+        Timer = 2,
+        Serial = 3,
+        Joypad = 4
     }
 }
