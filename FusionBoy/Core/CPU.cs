@@ -148,14 +148,10 @@ namespace FusionBoy.Core
                     if (++Memory[Util.TimerCounterAddress] == 0)
                     {
                         Memory[Util.TimerCounterAddress] = Memory[Util.TimerModuloAddress];
-                        Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.timer);
+                        Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.Timer);
                     }
                     TimerCycles -= CyclesPerTimerIncrement;
                 } 
-            }
-            else
-            {
-                TimerCycles = 0;
             }
         }
 
@@ -203,7 +199,7 @@ namespace FusionBoy.Core
                 byte interruptEnable = Memory[Util.InterruptEnableAddress];
                 byte interruptFlags = Memory[Util.InterruptFlagAddress];
 
-                for (byte i = (byte)Interrupts.vBlank; i <= (byte)Interrupts.joypad; i++)
+                for (byte i = (byte)Interrupts.VBlank; i <= (byte)Interrupts.Joypad; i++)
                 {
                     if (Util.IsBitSet(interruptEnable, i) && Util.IsBitSet(interruptFlags, i))
                     {
@@ -235,7 +231,18 @@ namespace FusionBoy.Core
                         interruptQueue.Enqueue(true);
                 }        
             }
-        }        
+        }
+
+        // http://problemkaputt.de/pandocs.htm#joypadinput
+        public void KeyDown(Joypad input)
+        {
+            
+        }
+
+        public void KeyUp(Joypad input)
+        {
+
+        }
 
         private void UpdateDivider(int cycleCount)
         {

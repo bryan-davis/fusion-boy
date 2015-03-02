@@ -51,7 +51,7 @@ namespace FusionBoy.Core
             }
             else if (currentLine == Height)
             {
-                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.vBlank);
+                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.VBlank);
             }
             else if (currentLine > 153)
             {
@@ -100,7 +100,7 @@ namespace FusionBoy.Core
             if (interruptRequested)
             {
                 // Request LCD Stat interrupt
-                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
+                Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.LcdStat);
             }
 
             UpdateCoincidence();
@@ -116,7 +116,7 @@ namespace FusionBoy.Core
                 if (Util.IsBitSet(Memory, Util.LcdStatAddress, 6))
                 {
                     // Request LCD Stat interrupt
-                    Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.lcdStat);
+                    Util.SetBits(Memory, Util.InterruptFlagAddress, (byte)Interrupts.LcdStat);
                 }
             }
             else

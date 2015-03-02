@@ -104,12 +104,70 @@ namespace FusionBoy.Emulator
 
         public void KeyUp(System.Windows.Input.Key key)
         {
-            
+            // TODO: Make input user-configurable
+            switch (key)
+            {
+                case System.Windows.Input.Key.A:
+                    cpu.KeyUp(Joypad.Left);
+                    break;
+                case System.Windows.Input.Key.D:
+                    cpu.KeyUp(Joypad.Right);
+                    break;
+                case System.Windows.Input.Key.Down:
+                    cpu.KeyUp(Joypad.Start);
+                    break;
+                case System.Windows.Input.Key.Left:
+                    cpu.KeyUp(Joypad.B);
+                    break;
+                case System.Windows.Input.Key.Right:
+                    cpu.KeyUp(Joypad.A);
+                    break;
+                case System.Windows.Input.Key.S:
+                    cpu.KeyUp(Joypad.Down);
+                    break;
+                case System.Windows.Input.Key.Up:
+                    cpu.KeyUp(Joypad.Select);
+                    break;
+                case System.Windows.Input.Key.W:
+                    cpu.KeyUp(Joypad.Up);
+                    break;
+                default:
+                    break;
+            }
         }
 
         public void KeyDown(System.Windows.Input.Key key)
         {
-            
+            // TODO: Make input user-configurable
+            switch (key)
+            {
+                case System.Windows.Input.Key.A:
+                    cpu.KeyDown(Joypad.Left);
+                    break;
+                case System.Windows.Input.Key.D:
+                    cpu.KeyDown(Joypad.Right);
+                    break;
+                case System.Windows.Input.Key.Down:
+                    cpu.KeyDown(Joypad.Start);
+                    break;
+                case System.Windows.Input.Key.Left:
+                    cpu.KeyDown(Joypad.B);
+                    break;
+                case System.Windows.Input.Key.Right:
+                    cpu.KeyDown(Joypad.A);
+                    break;
+                case System.Windows.Input.Key.S:
+                    cpu.KeyDown(Joypad.Down);
+                    break;
+                case System.Windows.Input.Key.Up:
+                    cpu.KeyDown(Joypad.Select);
+                    break;
+                case System.Windows.Input.Key.W:
+                    cpu.KeyDown(Joypad.Up);
+                    break;
+                default:
+                    break;
+            }
         }
 
         public void LoadState(string saveStateFile)
