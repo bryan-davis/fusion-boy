@@ -199,6 +199,33 @@ namespace FusionBoy.Cartridge
             }
         }
 
+        protected byte ReadCartridge(int address)
+        {
+            if (address >= cartridge.Length)
+            {
+                address %= cartridge.Length;
+            }
+            return cartridge[address];
+        }
+
+        protected byte ReadRamBank(int address)
+        {
+            if (address >= ramBank.Length)
+            {
+                address %= ramBank.Length;
+            }
+            return ramBank[address];
+        }
+
+        protected void WriteRamBank(int address, byte value)
+        {
+            if (address >= ramBank.Length)
+            {
+                address %= ramBank.Length;
+            }
+            ramBank[address] = value;
+        }
+
         protected bool IsRom(int address)
         {
             return address < 0x8000;
