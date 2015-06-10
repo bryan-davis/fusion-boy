@@ -26,24 +26,24 @@ namespace FusionBoy.Cartridge
                     if (BankMode == BankModes.Rom)
                     {
                         int bankAddress = (address & 0x3FFF) + (CurrentRomBank * 0x4000);
-                        return cartridge[bankAddress];
+                        return ReadCartridge(bankAddress);
                     }
                     else
                     {
                         int bankAddress = (address & 0x3FFF) + ((CurrentRomBank & 0x1F) * 0x4000);
-                        return cartridge[bankAddress];
+                        return ReadCartridge(bankAddress);
                     }
                 }
                 else if (IsRamBankRegion(address) && ExternalRamEnabled)
                 {
                     if (BankMode == BankModes.Rom)
-                    {
-                        return ramBank[address & 0x1FFF];
+                    {                        
+                        return ReadRamBank(address & 0x1FFF);
                     }
                     else
                     {
                         int bankAddress = (address & 0x1FFF) + (CurrentRamBank * 0x2000);
-                        return ramBank[bankAddress];
+                        return ReadRamBank(bankAddress);
                     }
                 }
                 else
@@ -60,27 +60,20 @@ namespace FusionBoy.Cartridge
                 else if (IsRomBankSwitchingRegion(address))
                 {
                     int bankNumber = value & 0x1F;  // Clear the top bits
-                    if (bankNumber == 0)
-                    {
-                        CurrentRomBank = 1;
-                    }
-                    else
-                    {
-                        CurrentRomBank &= 0xE0; // Clear the bottom 5 bits
-                        CurrentRomBank = (byte)(CurrentRomBank | bankNumber);
-                        AdjustRomBank();
-                    }
+                    CurrentRomBank &= 0xE0; // Clear the bottom 5 bits
+                    CurrentRomBank = (byte)(CurrentRomBank | bankNumber);
+                    AdjustRomBank();
                 }
                 else if (IsRamBankRegion(address) && ExternalRamEnabled)
                 {
                     if (BankMode == BankModes.Rom)
                     {
-                        ramBank[address & 0x1FFF] = value;
+                        WriteRamBank(address & 0x1FFF, value);
                     }
                     else
                     {
                         int bankAddress = (address & 0x1FFF) + (CurrentRamBank * 0x2000);
-                        ramBank[bankAddress] = value;
+                        WriteRamBank(bankAddress, value);
                     }
                 }
                 else if (IsUpperBankSwitchingRegion(address))
@@ -117,7 +110,7 @@ namespace FusionBoy.Cartridge
 
         private void AdjustRomBank()
         {
-            if (CurrentRomBank == 0x20 || CurrentRomBank == 0x40 || CurrentRomBank == 0x60)
+            if (CurrentRomBank == 0x00 || CurrentRomBank == 0x20 || CurrentRomBank == 0x40 || CurrentRomBank == 0x60)
             {
                 CurrentRomBank++;
             }
