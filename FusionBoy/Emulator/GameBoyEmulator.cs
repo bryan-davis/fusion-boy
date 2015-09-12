@@ -44,7 +44,7 @@ namespace FusionBoy.Emulator
                     currentGame = value.Substring(0, index - 1);
                 else
                     currentGame = value;
-                RaisePropertyChanged("CurrentGame");
+                RaisePropertyChanged(nameof(CurrentGame));
             }
         }
 
@@ -54,7 +54,7 @@ namespace FusionBoy.Emulator
             private set
             {
                 frameRate = value;
-                RaisePropertyChanged("FrameRate");
+                RaisePropertyChanged(nameof(FrameRate));
             }
         }
 
@@ -193,10 +193,7 @@ namespace FusionBoy.Emulator
 
         private void Render()
         {
-            if (RenderHandler != null)
-            {
-                RenderHandler(cpu.Display.ScreenData);
-            }
+            RenderHandler?.Invoke(cpu.Display.ScreenData);
 
             frameCount++;
             if (frameRateTimer.ElapsedMilliseconds >= 1000)

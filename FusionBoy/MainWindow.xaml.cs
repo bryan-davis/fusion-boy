@@ -4,8 +4,8 @@
  * Refer to the license.txt file included
  */
 
-using Microsoft.Win32;
 using FusionBoy.Emulator;
+using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -41,11 +41,8 @@ namespace FusionBoy
 
         private void StopEmulation()
         {
-            if (emulatorThread != null && emulatorThread.IsAlive)
-            {
-                emulator.Stop = true;
-                emulatorThread.Join(1000);
-            }
+            emulator.Stop = true;
+            emulatorThread?.Join(1000);
         }
 
         private void StartEmulation()

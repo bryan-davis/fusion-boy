@@ -102,9 +102,9 @@ namespace FusionBoy.Cartridge
                     }
                 }
                 else
-	            {
+                {
                     base[address] = value;
-	            }
+                }
             }
         }
 
