@@ -662,8 +662,9 @@ namespace FusionBoy.Core
         private void ReturnAndEnableInterrupts()
         {
             Return();
-            interruptQueue.Clear();
-            interruptQueue.Enqueue(true);
+            EnableInterrupts();
+            //interruptQueue.Clear();
+            //interruptQueue.Enqueue(true);
         }
 
         private void EnableInterrupts()
