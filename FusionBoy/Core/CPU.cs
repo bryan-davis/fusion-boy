@@ -47,10 +47,6 @@ namespace FusionBoy.Core
 
         private Queue<bool> interruptQueue;
 
-#if DEBUG
-        private StreamWriter log = new StreamWriter(@"E:\debug.txt");
-#endif
-
         public CPU() { }
 
         public void LoadRom(string romPath)
@@ -266,9 +262,6 @@ namespace FusionBoy.Core
             {
                 opCode = ReadNextValue();
             }
-
-            if (opCode != 0xCB)
-                Log(opCode);
 
             switch (opCode)
             {
@@ -769,7 +762,6 @@ namespace FusionBoy.Core
         public void ExecuteCBOpCode()
         {
             int opCode = ReadNextValue();
-            Log(0xCB00 | opCode);
             switch (opCode)
             {
                 case 0x00: RotateLeftNoCarry(ref BC.High);
@@ -1341,31 +1333,6 @@ namespace FusionBoy.Core
             }
 
             return mbc;
-        }
-
-        private void Log(int opCode)
-        {
-#if DEBUG
-            StringBuilder output = new StringBuilder();
-
-            output.Append(string.Format("OP = 0x{0:X4} ", opCode));
-            output.Append(string.Format("PC = 0x{0:X4} ", ProgramCounter));
-            output.Append(string.Format("Mem[PC] = 0x{0:X2} ", Memory[ProgramCounter]));
-            output.Append(string.Format("SP = 0x{0:X4} ", StackPointer.Value));
-            output.Append(string.Format("Mem[SP] = 0x{0:X2} ", Memory[StackPointer.Value]));
-            output.Append(string.Format("A = 0x{0:X2} ", AF.High));
-            output.Append(string.Format("F = 0x{0:X2} ", AF.Low));
-            output.Append(string.Format("B = 0x{0:X2} ", BC.High));
-            output.Append(string.Format("C = 0x{0:X2} ", BC.Low));
-            output.Append(string.Format("D = 0x{0:X2} ", DE.High));
-            output.Append(string.Format("E = 0x{0:X2} ", DE.Low));
-            output.Append(string.Format("H = 0x{0:X2} ", HL.High));
-            output.Append(string.Format("L = 0x{0:X2} ", HL.Low));
-            output.Append(string.Format("Mem[TIMA] = {0} ", Memory[Util.TimerCounterAddress]));
-            output.Append(string.Format("TimerCycles = {0}", TimerCycles));
-
-            log.WriteLine(output.ToString());
-#endif
         }
     }
 }
