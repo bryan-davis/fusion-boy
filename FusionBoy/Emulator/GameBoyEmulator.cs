@@ -172,12 +172,12 @@ namespace FusionBoy.Emulator
 
         public void LoadState(string saveStateFile)
         {
-            
+            throw new NotImplementedException();
         }
 
         public void SaveState()
         {
-            
+            throw new NotImplementedException();
         }
 
         private void UpdateFrame()
