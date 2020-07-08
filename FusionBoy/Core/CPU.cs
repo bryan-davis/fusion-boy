@@ -263,498 +263,904 @@ namespace FusionBoy.Core
                 opCode = ReadNextValue();
             }
 
-            switch (opCode)
+            int highByte = ((opCode & 0xF0) >> 4);
+            int lowByte = opCode & 0x0F;
+
+            switch (highByte)
             {
-                case 0x00: // Do nothing
+                case 0x0:
+                    ExecuteHighByte0OpCode(lowByte);
                     break;
-                case 0x01: LoadValueToRegister16Bit(BC);
+                case 0x1:
+                    ExecuteHighByte1OpCode(lowByte);
                     break;
-                case 0x02: LoadValueToMemory8Bit(BC.Value, AF.High);
+                case 0x2:
+                    ExecuteHighByte2OpCode(lowByte);
                     break;
-                case 0x03: IncrementRegister16Bit(BC);
+                case 0x3:
+                    ExecuteHighByte3OpCode(lowByte);
                     break;
-                case 0x04: IncrementRegister8Bit(ref BC.High);
+                case 0x4:
+                    ExecuteHighByte4OpCode(lowByte);
                     break;
-                case 0x05: DecrementRegister8Bit(ref BC.High);
+                case 0x5:
+                    ExecuteHighByte5OpCode(lowByte);
                     break;
-                case 0x06: LoadValueToRegister8Bit(ref BC.High); 
+                case 0x6:
+                    ExecuteHighByte6OpCode(lowByte);
                     break;
-                case 0x07: RotateALeftNoCarry();
+                case 0x7:
+                    ExecuteHighByte7OpCode(lowByte);
                     break;
-                case 0x08: LoadRegisterToMemory(StackPointer);
+                case 0x8:
+                    ExecuteHighByte8OpCode(lowByte);
                     break;
-                case 0x09: AddValueToRegisterHL(BC);
+                case 0x9:
+                    ExecuteHighByte9OpCode(lowByte);
                     break;
-                case 0x0A: LoadMemoryToRegister8Bit(ref AF.High, BC.Value);
+                case 0xA:
+                    ExecuteHighByteAOpCode(lowByte);
                     break;
-                case 0x0B: DecrementRegister16Bit(BC);
+                case 0xB:
+                    ExecuteHighByteBOpCode(lowByte);
                     break;
-                case 0x0C: IncrementRegister8Bit(ref BC.Low);
+                case 0xC:
+                    ExecuteHighByteCOpCode(lowByte);
                     break;
-                case 0x0D: DecrementRegister8Bit(ref BC.Low);
+                case 0xD:
+                    ExecuteHighByteDOpCode(lowByte);
                     break;
-                case 0x0E: LoadValueToRegister8Bit(ref BC.Low); 
+                case 0xE:
+                    ExecuteHighByteEOpCode(lowByte);
                     break;
-                case 0x0F: RotateARightNoCarry();
+                case 0xF:
+                    ExecuteHighByteFOpCode(lowByte);
                     break;
-                case 0x10: Stopped = true; ProgramCounter++;
+            }
+        }
+
+        private void ExecuteHighByteFOpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    LoadMemoryToRegister8Bit(ref AF.High, (ushort)(0xFF00 + ReadNextValue()));
                     break;
-                case 0x11: LoadValueToRegister16Bit(DE);
+                case 0x1:
+                    PopValuesIntoRegister(AF); AF.Low &= 0xF0;   // Bottom 4 bits of flags are never used; clear them
                     break;
-                case 0x12: LoadValueToMemory8Bit(DE.Value, AF.High);
+                case 0x2:
+                    LoadMemoryToRegister8Bit(ref AF.High, (ushort)(0xFF00 + BC.Low));
                     break;
-                case 0x13: IncrementRegister16Bit(DE);
+                case 0x3:
+                    DisableInterrupts();
                     break;
-                case 0x14: IncrementRegister8Bit(ref DE.High);
+                case 0x5:
+                    PushAddressOntoStack(AF.Value);
                     break;
-                case 0x15: DecrementRegister8Bit(ref DE.High);
+                case 0x6:
+                    OrWithRegisterA(ReadNextValue());
                     break;
-                case 0x16: LoadValueToRegister8Bit(ref DE.High); 
+                case 0x7:
+                    Restart(0x30);
                     break;
-                case 0x17: RotateALeftThroughCarry();
+                case 0x8:
+                    LoadStackPointerToRegisterHL();
                     break;
-                case 0x18: Jump((sbyte)ReadNextValue());
+                case 0x9:
+                    IncrementCycles(4); LoadRegisterToRegister16Bit(StackPointer, HL);
                     break;
-                case 0x19: AddValueToRegisterHL(DE);
+                case 0xA:
+                    LoadMemoryToRegister8Bit(ref AF.High, ReadNextTwoValues());
                     break;
-                case 0x1A: LoadMemoryToRegister8Bit(ref AF.High, DE.Value);
+                case 0xB:
+                    EnableInterrupts();
                     break;
-                case 0x1B: DecrementRegister16Bit(DE);
+                case 0xE:
+                    CompareWithRegisterA(ReadNextValue());
                     break;
-                case 0x1C: IncrementRegister8Bit(ref DE.Low);
+                case 0xF:
+                    Restart(0x38);
                     break;
-                case 0x1D: DecrementRegister8Bit(ref DE.Low);
+            }
+        }
+
+        private void ExecuteHighByteEOpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    LoadValueToMemory8Bit((ushort)(0xFF00 + ReadNextValue()), AF.High);
                     break;
-                case 0x1E: LoadValueToRegister8Bit(ref DE.Low); 
+                case 0x1:
+                    PopValuesIntoRegister(HL);
                     break;
-                case 0x1F: RotateARightThroughCarry();
+                case 0x2:
+                    LoadValueToMemory8Bit((ushort)(0xFF00 + BC.Low), AF.High);
                     break;
-                case 0x20: ConditionallyJump(!IsFlagSet(FlagZ), (sbyte)ReadNextValue());
+                case 0x5:
+                    PushAddressOntoStack(HL.Value);
                     break;
-                case 0x21: LoadValueToRegister16Bit(HL);
+                case 0x6:
+                    AndWithRegisterA(ReadNextValue());
                     break;
-                case 0x22: LoadValueToMemory8Bit(HL.Value, AF.High); HL.Value++;
+                case 0x7:
+                    Restart(0x20);
                     break;
-                case 0x23: IncrementRegister16Bit(HL);
+                case 0x8:
+                    AddValueToStackPointer();
                     break;
-                case 0x24: IncrementRegister8Bit(ref HL.High);
+                case 0x9:
+                    IncrementCycles(-4); Jump(HL.Value);
                     break;
-                case 0x25: DecrementRegister8Bit(ref HL.High);
+                case 0xA:
+                    LoadValueToMemory8Bit(ReadNextTwoValues(), AF.High);
                     break;
-                case 0x26: LoadValueToRegister8Bit(ref HL.High); 
+                case 0xE:
+                    XorWithRegisterA(ReadNextValue());
                     break;
-                case 0x27: DecimalAdjustRegisterA();
+                case 0xF:
+                    Restart(0x28);
                     break;
-                case 0x28: ConditionallyJump(IsFlagSet(FlagZ), (sbyte)ReadNextValue());
+            }
+        }
+
+        private void ExecuteHighByteDOpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    ConditionallyReturn(!IsFlagSet(FlagC));
                     break;
-                case 0x29: AddValueToRegisterHL(HL);
+                case 0x1:
+                    PopValuesIntoRegister(DE);
                     break;
-                case 0x2A: LoadMemoryToRegister8Bit(ref AF.High, HL.Value); HL.Value++;
+                case 0x2:
+                    ConditionallyJump(!IsFlagSet(FlagC), ReadNextTwoValues());
                     break;
-                case 0x2B: DecrementRegister16Bit(HL);
+                case 0x4:
+                    ConditionallyCall(!IsFlagSet(FlagC), ReadNextTwoValues());
                     break;
-                case 0x2C: IncrementRegister8Bit(ref HL.Low);
+                case 0x5:
+                    PushAddressOntoStack(DE.Value);
                     break;
-                case 0x2D: DecrementRegister8Bit(ref HL.Low);
+                case 0x6:
+                    SubtractValueFromRegisterA(ReadNextValue());
                     break;
-                case 0x2E: LoadValueToRegister8Bit(ref HL.Low); 
+                case 0x7:
+                    Restart(0x10);
                     break;
-                case 0x2F: ComplementRegisterA();
+                case 0x8:
+                    ConditionallyReturn(IsFlagSet(FlagC));
                     break;
-                case 0x30: ConditionallyJump(!IsFlagSet(FlagC), (sbyte)ReadNextValue());
+                case 0x9:
+                    ReturnAndEnableInterrupts();
                     break;
-                case 0x31: LoadValueToRegister16Bit(StackPointer);
+                case 0xA:
+                    ConditionallyJump(IsFlagSet(FlagC), ReadNextTwoValues());
                     break;
-                case 0x32: LoadValueToMemory8Bit(HL.Value, AF.High); HL.Value--;
+                case 0xC:
+                    ConditionallyCall(IsFlagSet(FlagC), ReadNextTwoValues());
                     break;
-                case 0x33: IncrementRegister16Bit(StackPointer);
+                case 0xE:
+                    SubtractValueFromRegisterA(ReadNextValue(), true);
                     break;
-                case 0x34: IncrementMemory(HL.Value);
+                case 0xF:
+                    Restart(0x18);
                     break;
-                case 0x35: DecrementMemory(HL.Value);
+            }
+        }
+
+        private void ExecuteHighByteCOpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    ConditionallyReturn(!IsFlagSet(FlagZ));
                     break;
-                case 0x36: LoadValueToMemory8Bit(HL.Value, ReadNextValue());
+                case 0x1:
+                    PopValuesIntoRegister(BC);
                     break;
-                case 0x37: SetCarryFlag();
+                case 0x2:
+                    ConditionallyJump(!IsFlagSet(FlagZ), ReadNextTwoValues());
                     break;
-                case 0x38: ConditionallyJump(IsFlagSet(FlagC), (sbyte)ReadNextValue());
+                case 0x3:
+                    Jump(ReadNextTwoValues());
                     break;
-                case 0x39: AddValueToRegisterHL(StackPointer);
+                case 0x4:
+                    ConditionallyCall(!IsFlagSet(FlagZ), ReadNextTwoValues());
                     break;
-                case 0x3A: LoadMemoryToRegister8Bit(ref AF.High, HL.Value); HL.Value--;
+                case 0x5:
+                    PushAddressOntoStack(BC.Value);
                     break;
-                case 0x3B: DecrementRegister16Bit(StackPointer);
+                case 0x6:
+                    AddValueToRegisterA(ReadNextValue());
                     break;
-                case 0x3C: IncrementRegister8Bit(ref AF.High);
+                case 0x7:
+                    Restart(0x00);
                     break;
-                case 0x3D: DecrementRegister8Bit(ref AF.High);
+                case 0x8:
+                    ConditionallyReturn(IsFlagSet(FlagZ));
                     break;
-                case 0x3E: LoadValueToRegister8Bit(ref AF.High);
+                case 0x9:
+                    Return();
                     break;
-                case 0x3F: ComplementCarryFlag();
+                case 0xA:
+                    ConditionallyJump(IsFlagSet(FlagZ), ReadNextTwoValues());
                     break;
-                case 0x40: LoadRegisterToRegister8Bit(ref BC.High, BC.High);
+                case 0xB:
+                    ExecuteCBOpCode();
                     break;
-                case 0x41: LoadRegisterToRegister8Bit(ref BC.High, BC.Low); 
+                case 0xC:
+                    ConditionallyCall(IsFlagSet(FlagZ), ReadNextTwoValues());
                     break;
-                case 0x42: LoadRegisterToRegister8Bit(ref BC.High, DE.High); 
+                case 0xD:
+                    Call(ReadNextTwoValues());
                     break;
-                case 0x43: LoadRegisterToRegister8Bit(ref BC.High, DE.Low);
+                case 0xE:
+                    AddValueToRegisterA(ReadNextValue(), true);
                     break;
-                case 0x44: LoadRegisterToRegister8Bit(ref BC.High, HL.High);
+                case 0xF:
+                    Restart(0x08);
                     break;
-                case 0x45: LoadRegisterToRegister8Bit(ref BC.High, HL.Low); 
+            }
+        }
+
+        private void ExecuteHighByteBOpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    OrWithRegisterA(BC.High);
                     break;
-                case 0x46: LoadMemoryToRegister8Bit(ref BC.High, HL.Value);
+                case 0x1:
+                    OrWithRegisterA(BC.Low);
                     break;
-                case 0x47: LoadRegisterToRegister8Bit(ref BC.High, AF.High);
+                case 0x2:
+                    OrWithRegisterA(DE.High);
                     break;
-                case 0x48: LoadRegisterToRegister8Bit(ref BC.Low, BC.High);
+                case 0x3:
+                    OrWithRegisterA(DE.Low);
                     break;
-                case 0x49: LoadRegisterToRegister8Bit(ref BC.Low, BC.Low);
+                case 0x4:
+                    OrWithRegisterA(HL.High);
                     break;
-                case 0x4A: LoadRegisterToRegister8Bit(ref BC.Low, DE.High);
+                case 0x5:
+                    OrWithRegisterA(HL.Low);
                     break;
-                case 0x4B: LoadRegisterToRegister8Bit(ref BC.Low, DE.Low);
+                case 0x6:
+                    OrWithRegisterA(ReadMemory(HL.Value));
                     break;
-                case 0x4C: LoadRegisterToRegister8Bit(ref BC.Low, HL.High);
+                case 0x7:
+                    OrWithRegisterA(AF.High);
                     break;
-                case 0x4D: LoadRegisterToRegister8Bit(ref BC.Low, HL.Low);
+                case 0x8:
+                    CompareWithRegisterA(BC.High);
                     break;
-                case 0x4E: LoadMemoryToRegister8Bit(ref BC.Low, HL.Value);
+                case 0x9:
+                    CompareWithRegisterA(BC.Low);
                     break;
-                case 0x4F: LoadRegisterToRegister8Bit(ref BC.Low, AF.High);
+                case 0xA:
+                    CompareWithRegisterA(DE.High);
                     break;
-                case 0x50: LoadRegisterToRegister8Bit(ref DE.High, BC.High);
+                case 0xB:
+                    CompareWithRegisterA(DE.Low);
                     break;
-                case 0x51: LoadRegisterToRegister8Bit(ref DE.High, BC.Low);
+                case 0xC:
+                    CompareWithRegisterA(HL.High);
                     break;
-                case 0x52: LoadRegisterToRegister8Bit(ref DE.High, DE.High);
+                case 0xD:
+                    CompareWithRegisterA(HL.Low);
                     break;
-                case 0x53: LoadRegisterToRegister8Bit(ref DE.High, DE.Low);
+                case 0xE:
+                    CompareWithRegisterA(ReadMemory(HL.Value));
                     break;
-                case 0x54: LoadRegisterToRegister8Bit(ref DE.High, HL.High);
+                case 0xF:
+                    CompareWithRegisterA(AF.High);
                     break;
-                case 0x55: LoadRegisterToRegister8Bit(ref DE.High, HL.Low);
+            }
+        }
+
+        private void ExecuteHighByteAOpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    AndWithRegisterA(BC.High);
                     break;
-                case 0x56: LoadMemoryToRegister8Bit(ref DE.High, HL.Value);
+                case 0x1:
+                    AndWithRegisterA(BC.Low);
                     break;
-                case 0x57: LoadRegisterToRegister8Bit(ref DE.High, AF.High);
+                case 0x2:
+                    AndWithRegisterA(DE.High);
                     break;
-                case 0x58: LoadRegisterToRegister8Bit(ref DE.Low, BC.High);
+                case 0x3:
+                    AndWithRegisterA(DE.Low);
                     break;
-                case 0x59: LoadRegisterToRegister8Bit(ref DE.Low, BC.Low);
+                case 0x4:
+                    AndWithRegisterA(HL.High);
                     break;
-                case 0x5A: LoadRegisterToRegister8Bit(ref DE.Low, DE.High);
+                case 0x5:
+                    AndWithRegisterA(HL.Low);
                     break;
-                case 0x5B: LoadRegisterToRegister8Bit(ref DE.Low, DE.Low);
+                case 0x6:
+                    AndWithRegisterA(ReadMemory(HL.Value));
                     break;
-                case 0x5C: LoadRegisterToRegister8Bit(ref DE.Low, HL.High);
+                case 0x7:
+                    AndWithRegisterA(AF.High);
                     break;
-                case 0x5D: LoadRegisterToRegister8Bit(ref DE.Low, HL.Low);
+                case 0x8:
+                    XorWithRegisterA(BC.High);
                     break;
-                case 0x5E: LoadMemoryToRegister8Bit(ref DE.Low, HL.Value);
+                case 0x9:
+                    XorWithRegisterA(BC.Low);
                     break;
-                case 0x5F: LoadRegisterToRegister8Bit(ref DE.Low, AF.High);
+                case 0xA:
+                    XorWithRegisterA(DE.High);
                     break;
-                case 0x60: LoadRegisterToRegister8Bit(ref HL.High, BC.High);
+                case 0xB:
+                    XorWithRegisterA(DE.Low);
                     break;
-                case 0x61: LoadRegisterToRegister8Bit(ref HL.High, BC.Low);
+                case 0xC:
+                    XorWithRegisterA(HL.High);
                     break;
-                case 0x62: LoadRegisterToRegister8Bit(ref HL.High, DE.High);
+                case 0xD:
+                    XorWithRegisterA(HL.Low);
                     break;
-                case 0x63: LoadRegisterToRegister8Bit(ref HL.High, DE.Low);
+                case 0xE:
+                    XorWithRegisterA(ReadMemory(HL.Value));
                     break;
-                case 0x64: LoadRegisterToRegister8Bit(ref HL.High, HL.High);
+                case 0xF:
+                    XorWithRegisterA(AF.High);
                     break;
-                case 0x65: LoadRegisterToRegister8Bit(ref HL.High, HL.Low);
+            }
+        }
+
+        private void ExecuteHighByte9OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    SubtractValueFromRegisterA(BC.High);
                     break;
-                case 0x66: LoadMemoryToRegister8Bit(ref HL.High, HL.Value);
+                case 0x1:
+                    SubtractValueFromRegisterA(BC.Low);
                     break;
-                case 0x67: LoadRegisterToRegister8Bit(ref HL.High, AF.High);
+                case 0x2:
+                    SubtractValueFromRegisterA(DE.High);
                     break;
-                case 0x68: LoadRegisterToRegister8Bit(ref HL.Low, BC.High);
+                case 0x3:
+                    SubtractValueFromRegisterA(DE.Low);
                     break;
-                case 0x69: LoadRegisterToRegister8Bit(ref HL.Low, BC.Low);
+                case 0x4:
+                    SubtractValueFromRegisterA(HL.High);
                     break;
-                case 0x6A: LoadRegisterToRegister8Bit(ref HL.Low, DE.High);
+                case 0x5:
+                    SubtractValueFromRegisterA(HL.Low);
                     break;
-                case 0x6B: LoadRegisterToRegister8Bit(ref HL.Low, DE.Low);
+                case 0x6:
+                    SubtractValueFromRegisterA(ReadMemory(HL.Value));
                     break;
-                case 0x6C: LoadRegisterToRegister8Bit(ref HL.Low, HL.High);
+                case 0x7:
+                    SubtractValueFromRegisterA(AF.High);
                     break;
-                case 0x6D: LoadRegisterToRegister8Bit(ref HL.Low, HL.Low);
+                case 0x8:
+                    SubtractValueFromRegisterA(BC.High, true);
                     break;
-                case 0x6E: LoadMemoryToRegister8Bit(ref HL.Low, HL.Value);
+                case 0x9:
+                    SubtractValueFromRegisterA(BC.Low, true);
                     break;
-                case 0x6F: LoadRegisterToRegister8Bit(ref HL.Low, AF.High);
+                case 0xA:
+                    SubtractValueFromRegisterA(DE.High, true);
                     break;
-                case 0x70: LoadValueToMemory8Bit(HL.Value, BC.High);
-                    break;                             
-                case 0x71: LoadValueToMemory8Bit(HL.Value, BC.Low);
-                    break;                             
-                case 0x72: LoadValueToMemory8Bit(HL.Value, DE.High);
-                    break;                             
-                case 0x73: LoadValueToMemory8Bit(HL.Value, DE.Low);
-                    break;                             
-                case 0x74: LoadValueToMemory8Bit(HL.Value, HL.High);
-                    break;                             
-                case 0x75: LoadValueToMemory8Bit(HL.Value, HL.Low);
+                case 0xB:
+                    SubtractValueFromRegisterA(DE.Low, true);
                     break;
-                case 0x76: Halt();
+                case 0xC:
+                    SubtractValueFromRegisterA(HL.High, true);
                     break;
-                case 0x77: LoadValueToMemory8Bit(HL.Value, AF.High);
+                case 0xD:
+                    SubtractValueFromRegisterA(HL.Low, true);
                     break;
-                case 0x78: LoadRegisterToRegister8Bit(ref AF.High, BC.High); 
+                case 0xE:
+                    SubtractValueFromRegisterA(ReadMemory(HL.Value), true);
                     break;
-                case 0x79: LoadRegisterToRegister8Bit(ref AF.High, BC.Low); 
+                case 0xF:
+                    SubtractValueFromRegisterA(AF.High, true);
                     break;
-                case 0x7A: LoadRegisterToRegister8Bit(ref AF.High, DE.High); 
+            }
+        }
+
+        private void ExecuteHighByte8OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    AddValueToRegisterA(BC.High);
                     break;
-                case 0x7B: LoadRegisterToRegister8Bit(ref AF.High, DE.Low); 
+                case 0x1:
+                    AddValueToRegisterA(BC.Low);
                     break;
-                case 0x7C: LoadRegisterToRegister8Bit(ref AF.High, HL.High); 
+                case 0x2:
+                    AddValueToRegisterA(DE.High);
                     break;
-                case 0x7D: LoadRegisterToRegister8Bit(ref AF.High, HL.Low); 
+                case 0x3:
+                    AddValueToRegisterA(DE.Low);
                     break;
-                case 0x7E: LoadMemoryToRegister8Bit(ref AF.High, HL.Value);
+                case 0x4:
+                    AddValueToRegisterA(HL.High);
                     break;
-                case 0x7F: LoadRegisterToRegister8Bit(ref AF.High, AF.High); 
+                case 0x5:
+                    AddValueToRegisterA(HL.Low);
                     break;
-                case 0x80: AddValueToRegisterA(BC.High);
+                case 0x6:
+                    AddValueToRegisterA(ReadMemory(HL.Value));
                     break;
-                case 0x81: AddValueToRegisterA(BC.Low);
+                case 0x7:
+                    AddValueToRegisterA(AF.High);
                     break;
-                case 0x82: AddValueToRegisterA(DE.High);
+                case 0x8:
+                    AddValueToRegisterA(BC.High, true);
                     break;
-                case 0x83: AddValueToRegisterA(DE.Low);
+                case 0x9:
+                    AddValueToRegisterA(BC.Low, true);
                     break;
-                case 0x84: AddValueToRegisterA(HL.High);
+                case 0xA:
+                    AddValueToRegisterA(DE.High, true);
                     break;
-                case 0x85: AddValueToRegisterA(HL.Low);
+                case 0xB:
+                    AddValueToRegisterA(DE.Low, true);
                     break;
-                case 0x86: AddValueToRegisterA(ReadMemory(HL.Value));
+                case 0xC:
+                    AddValueToRegisterA(HL.High, true);
                     break;
-                case 0x87: AddValueToRegisterA(AF.High);
+                case 0xD:
+                    AddValueToRegisterA(HL.Low, true);
                     break;
-                case 0x88: AddValueToRegisterA(BC.High, true);
+                case 0xE:
+                    AddValueToRegisterA(ReadMemory(HL.Value), true);
                     break;
-                case 0x89: AddValueToRegisterA(BC.Low, true);
+                case 0xF:
+                    AddValueToRegisterA(AF.High, true);
                     break;
-                case 0x8A: AddValueToRegisterA(DE.High, true);
+            }
+        }
+
+        private void ExecuteHighByte7OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    LoadValueToMemory8Bit(HL.Value, BC.High);
                     break;
-                case 0x8B: AddValueToRegisterA(DE.Low, true);
+                case 0x1:
+                    LoadValueToMemory8Bit(HL.Value, BC.Low);
                     break;
-                case 0x8C: AddValueToRegisterA(HL.High, true);
+                case 0x2:
+                    LoadValueToMemory8Bit(HL.Value, DE.High);
                     break;
-                case 0x8D: AddValueToRegisterA(HL.Low, true);
+                case 0x3:
+                    LoadValueToMemory8Bit(HL.Value, DE.Low);
                     break;
-                case 0x8E: AddValueToRegisterA(ReadMemory(HL.Value), true);
+                case 0x4:
+                    LoadValueToMemory8Bit(HL.Value, HL.High);
                     break;
-                case 0x8F: AddValueToRegisterA(AF.High, true);
+                case 0x5:
+                    LoadValueToMemory8Bit(HL.Value, HL.Low);
                     break;
-                case 0x90: SubtractValueFromRegisterA(BC.High);
+                case 0x6:
+                    Halt();
                     break;
-                case 0x91: SubtractValueFromRegisterA(BC.Low);
+                case 0x7:
+                    LoadValueToMemory8Bit(HL.Value, AF.High);
                     break;
-                case 0x92: SubtractValueFromRegisterA(DE.High);
+                case 0x8:
+                    LoadRegisterToRegister8Bit(ref AF.High, BC.High);
                     break;
-                case 0x93: SubtractValueFromRegisterA(DE.Low);
+                case 0x9:
+                    LoadRegisterToRegister8Bit(ref AF.High, BC.Low);
                     break;
-                case 0x94: SubtractValueFromRegisterA(HL.High);
+                case 0xA:
+                    LoadRegisterToRegister8Bit(ref AF.High, DE.High);
                     break;
-                case 0x95: SubtractValueFromRegisterA(HL.Low);
+                case 0xB:
+                    LoadRegisterToRegister8Bit(ref AF.High, DE.Low);
                     break;
-                case 0x96: SubtractValueFromRegisterA(ReadMemory(HL.Value));
+                case 0xC:
+                    LoadRegisterToRegister8Bit(ref AF.High, HL.High);
                     break;
-                case 0x97: SubtractValueFromRegisterA(AF.High);
+                case 0xD:
+                    LoadRegisterToRegister8Bit(ref AF.High, HL.Low);
                     break;
-                case 0x98: SubtractValueFromRegisterA(BC.High, true);
+                case 0xE:
+                    LoadMemoryToRegister8Bit(ref AF.High, HL.Value);
                     break;
-                case 0x99: SubtractValueFromRegisterA(BC.Low, true);
+                case 0xF:
+                    LoadRegisterToRegister8Bit(ref AF.High, AF.High);
                     break;
-                case 0x9A: SubtractValueFromRegisterA(DE.High, true);
+            }
+        }
+
+        private void ExecuteHighByte6OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    LoadRegisterToRegister8Bit(ref HL.High, BC.High);
                     break;
-                case 0x9B: SubtractValueFromRegisterA(DE.Low, true);
+                case 0x1:
+                    LoadRegisterToRegister8Bit(ref HL.High, BC.Low);
                     break;
-                case 0x9C: SubtractValueFromRegisterA(HL.High, true);
+                case 0x2:
+                    LoadRegisterToRegister8Bit(ref HL.High, DE.High);
                     break;
-                case 0x9D: SubtractValueFromRegisterA(HL.Low, true);
+                case 0x3:
+                    LoadRegisterToRegister8Bit(ref HL.High, DE.Low);
                     break;
-                case 0x9E: SubtractValueFromRegisterA(ReadMemory(HL.Value), true);
+                case 0x4:
+                    LoadRegisterToRegister8Bit(ref HL.High, HL.High);
                     break;
-                case 0x9F: SubtractValueFromRegisterA(AF.High, true);
+                case 0x5:
+                    LoadRegisterToRegister8Bit(ref HL.High, HL.Low);
                     break;
-                case 0xA0: AndWithRegisterA(BC.High);
+                case 0x6:
+                    LoadMemoryToRegister8Bit(ref HL.High, HL.Value);
                     break;
-                case 0xA1: AndWithRegisterA(BC.Low);
+                case 0x7:
+                    LoadRegisterToRegister8Bit(ref HL.High, AF.High);
                     break;
-                case 0xA2: AndWithRegisterA(DE.High);
+                case 0x8:
+                    LoadRegisterToRegister8Bit(ref HL.Low, BC.High);
                     break;
-                case 0xA3: AndWithRegisterA(DE.Low);
+                case 0x9:
+                    LoadRegisterToRegister8Bit(ref HL.Low, BC.Low);
                     break;
-                case 0xA4: AndWithRegisterA(HL.High);
+                case 0xA:
+                    LoadRegisterToRegister8Bit(ref HL.Low, DE.High);
                     break;
-                case 0xA5: AndWithRegisterA(HL.Low);
+                case 0xB:
+                    LoadRegisterToRegister8Bit(ref HL.Low, DE.Low);
                     break;
-                case 0xA6: AndWithRegisterA(ReadMemory(HL.Value));
+                case 0xC:
+                    LoadRegisterToRegister8Bit(ref HL.Low, HL.High);
                     break;
-                case 0xA7: AndWithRegisterA(AF.High);
+                case 0xD:
+                    LoadRegisterToRegister8Bit(ref HL.Low, HL.Low);
                     break;
-                case 0xA8: XorWithRegisterA(BC.High);
+                case 0xE:
+                    LoadMemoryToRegister8Bit(ref HL.Low, HL.Value);
                     break;
-                case 0xA9: XorWithRegisterA(BC.Low);
+                case 0xF:
+                    LoadRegisterToRegister8Bit(ref HL.Low, AF.High);
                     break;
-                case 0xAA: XorWithRegisterA(DE.High);
+            }
+        }
+
+        private void ExecuteHighByte5OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    LoadRegisterToRegister8Bit(ref DE.High, BC.High);
                     break;
-                case 0xAB: XorWithRegisterA(DE.Low);
+                case 0x1:
+                    LoadRegisterToRegister8Bit(ref DE.High, BC.Low);
                     break;
-                case 0xAC: XorWithRegisterA(HL.High);
+                case 0x2:
+                    LoadRegisterToRegister8Bit(ref DE.High, DE.High);
                     break;
-                case 0xAD: XorWithRegisterA(HL.Low);
+                case 0x3:
+                    LoadRegisterToRegister8Bit(ref DE.High, DE.Low);
                     break;
-                case 0xAE: XorWithRegisterA(ReadMemory(HL.Value));
+                case 0x4:
+                    LoadRegisterToRegister8Bit(ref DE.High, HL.High);
                     break;
-                case 0xAF: XorWithRegisterA(AF.High);
+                case 0x5:
+                    LoadRegisterToRegister8Bit(ref DE.High, HL.Low);
                     break;
-                case 0xB0: OrWithRegisterA(BC.High);
+                case 0x6:
+                    LoadMemoryToRegister8Bit(ref DE.High, HL.Value);
                     break;
-                case 0xB1: OrWithRegisterA(BC.Low);
+                case 0x7:
+                    LoadRegisterToRegister8Bit(ref DE.High, AF.High);
                     break;
-                case 0xB2: OrWithRegisterA(DE.High);
+                case 0x8:
+                    LoadRegisterToRegister8Bit(ref DE.Low, BC.High);
                     break;
-                case 0xB3: OrWithRegisterA(DE.Low);
+                case 0x9:
+                    LoadRegisterToRegister8Bit(ref DE.Low, BC.Low);
                     break;
-                case 0xB4: OrWithRegisterA(HL.High);
+                case 0xA:
+                    LoadRegisterToRegister8Bit(ref DE.Low, DE.High);
                     break;
-                case 0xB5: OrWithRegisterA(HL.Low);
+                case 0xB:
+                    LoadRegisterToRegister8Bit(ref DE.Low, DE.Low);
                     break;
-                case 0xB6: OrWithRegisterA(ReadMemory(HL.Value));
+                case 0xC:
+                    LoadRegisterToRegister8Bit(ref DE.Low, HL.High);
                     break;
-                case 0xB7: OrWithRegisterA(AF.High);
+                case 0xD:
+                    LoadRegisterToRegister8Bit(ref DE.Low, HL.Low);
                     break;
-                case 0xB8: CompareWithRegisterA(BC.High);
+                case 0xE:
+                    LoadMemoryToRegister8Bit(ref DE.Low, HL.Value);
                     break;
-                case 0xB9: CompareWithRegisterA(BC.Low);
+                case 0xF:
+                    LoadRegisterToRegister8Bit(ref DE.Low, AF.High);
                     break;
-                case 0xBA: CompareWithRegisterA(DE.High);
+            }
+        }
+
+        private void ExecuteHighByte4OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    LoadRegisterToRegister8Bit(ref BC.High, BC.High);
                     break;
-                case 0xBB: CompareWithRegisterA(DE.Low);
+                case 0x1:
+                    LoadRegisterToRegister8Bit(ref BC.High, BC.Low);
                     break;
-                case 0xBC: CompareWithRegisterA(HL.High);
+                case 0x2:
+                    LoadRegisterToRegister8Bit(ref BC.High, DE.High);
                     break;
-                case 0xBD: CompareWithRegisterA(HL.Low);
+                case 0x3:
+                    LoadRegisterToRegister8Bit(ref BC.High, DE.Low);
                     break;
-                case 0xBE: CompareWithRegisterA(ReadMemory(HL.Value));
+                case 0x4:
+                    LoadRegisterToRegister8Bit(ref BC.High, HL.High);
                     break;
-                case 0xBF: CompareWithRegisterA(AF.High);
+                case 0x5:
+                    LoadRegisterToRegister8Bit(ref BC.High, HL.Low);
                     break;
-                case 0xC0: ConditionallyReturn(!IsFlagSet(FlagZ));
+                case 0x6:
+                    LoadMemoryToRegister8Bit(ref BC.High, HL.Value);
                     break;
-                case 0xC1: PopValuesIntoRegister(BC);
+                case 0x7:
+                    LoadRegisterToRegister8Bit(ref BC.High, AF.High);
                     break;
-                case 0xC2: ConditionallyJump(!IsFlagSet(FlagZ), ReadNextTwoValues());
+                case 0x8:
+                    LoadRegisterToRegister8Bit(ref BC.Low, BC.High);
                     break;
-                case 0xC3: Jump(ReadNextTwoValues());
+                case 0x9:
+                    LoadRegisterToRegister8Bit(ref BC.Low, BC.Low);
                     break;
-                case 0xC4: ConditionallyCall(!IsFlagSet(FlagZ), ReadNextTwoValues());
+                case 0xA:
+                    LoadRegisterToRegister8Bit(ref BC.Low, DE.High);
                     break;
-                case 0xC5: PushAddressOntoStack(BC.Value);
+                case 0xB:
+                    LoadRegisterToRegister8Bit(ref BC.Low, DE.Low);
                     break;
-                case 0xC6: AddValueToRegisterA(ReadNextValue());
+                case 0xC:
+                    LoadRegisterToRegister8Bit(ref BC.Low, HL.High);
                     break;
-                case 0xC7: Restart(0x00);
+                case 0xD:
+                    LoadRegisterToRegister8Bit(ref BC.Low, HL.Low);
                     break;
-                case 0xC8: ConditionallyReturn(IsFlagSet(FlagZ));
+                case 0xE:
+                    LoadMemoryToRegister8Bit(ref BC.Low, HL.Value);
                     break;
-                case 0xC9: Return();
+                case 0xF:
+                    LoadRegisterToRegister8Bit(ref BC.Low, AF.High);
                     break;
-                case 0xCA: ConditionallyJump(IsFlagSet(FlagZ), ReadNextTwoValues());
+            }
+        }
+
+        private void ExecuteHighByte3OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    ConditionallyJump(!IsFlagSet(FlagC), (sbyte)ReadNextValue());
                     break;
-                case 0xCB: ExecuteCBOpCode();
+                case 0x1:
+                    LoadValueToRegister16Bit(StackPointer);
                     break;
-                case 0xCC: ConditionallyCall(IsFlagSet(FlagZ), ReadNextTwoValues());
+                case 0x2:
+                    LoadValueToMemory8Bit(HL.Value, AF.High); HL.Value--;
                     break;
-                case 0xCD: Call(ReadNextTwoValues());
+                case 0x3:
+                    IncrementRegister16Bit(StackPointer);
                     break;
-                case 0xCE: AddValueToRegisterA(ReadNextValue(), true);
+                case 0x4:
+                    IncrementMemory(HL.Value);
                     break;
-                case 0xCF: Restart(0x08);
+                case 0x5:
+                    DecrementMemory(HL.Value);
                     break;
-                case 0xD0: ConditionallyReturn(!IsFlagSet(FlagC));
+                case 0x6:
+                    LoadValueToMemory8Bit(HL.Value, ReadNextValue());
                     break;
-                case 0xD1: PopValuesIntoRegister(DE);
+                case 0x7:
+                    SetCarryFlag();
                     break;
-                case 0xD2: ConditionallyJump(!IsFlagSet(FlagC), ReadNextTwoValues());
+                case 0x8:
+                    ConditionallyJump(IsFlagSet(FlagC), (sbyte)ReadNextValue());
                     break;
-                case 0xD4: ConditionallyCall(!IsFlagSet(FlagC), ReadNextTwoValues());
+                case 0x9:
+                    AddValueToRegisterHL(StackPointer);
                     break;
-                case 0xD5: PushAddressOntoStack(DE.Value);
+                case 0xA:
+                    LoadMemoryToRegister8Bit(ref AF.High, HL.Value); HL.Value--;
                     break;
-                case 0xD6: SubtractValueFromRegisterA(ReadNextValue());
+                case 0xB:
+                    DecrementRegister16Bit(StackPointer);
                     break;
-                case 0xD7: Restart(0x10);
+                case 0xC:
+                    IncrementRegister8Bit(ref AF.High);
                     break;
-                case 0xD8: ConditionallyReturn(IsFlagSet(FlagC));
+                case 0xD:
+                    DecrementRegister8Bit(ref AF.High);
                     break;
-                case 0xD9: ReturnAndEnableInterrupts();
+                case 0xE:
+                    LoadValueToRegister8Bit(ref AF.High);
                     break;
-                case 0xDA: ConditionallyJump(IsFlagSet(FlagC), ReadNextTwoValues());
+                case 0xF:
+                    ComplementCarryFlag();
                     break;
-                case 0xDC: ConditionallyCall(IsFlagSet(FlagC), ReadNextTwoValues());
+            }
+        }
+
+        private void ExecuteHighByte2OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    ConditionallyJump(!IsFlagSet(FlagZ), (sbyte)ReadNextValue());
                     break;
-                case 0xDE: SubtractValueFromRegisterA(ReadNextValue(), true);
+                case 0x1:
+                    LoadValueToRegister16Bit(HL);
                     break;
-                case 0xDF: Restart(0x18);
+                case 0x2:
+                    LoadValueToMemory8Bit(HL.Value, AF.High); HL.Value++;
                     break;
-                case 0xE0: LoadValueToMemory8Bit((ushort)(0xFF00 + ReadNextValue()), AF.High);
+                case 0x3:
+                    IncrementRegister16Bit(HL);
                     break;
-                case 0xE1: PopValuesIntoRegister(HL);
+                case 0x4:
+                    IncrementRegister8Bit(ref HL.High);
                     break;
-                case 0xE2: LoadValueToMemory8Bit((ushort)(0xFF00 + BC.Low), AF.High);
+                case 0x5:
+                    DecrementRegister8Bit(ref HL.High);
                     break;
-                case 0xE5: PushAddressOntoStack(HL.Value);
+                case 0x6:
+                    LoadValueToRegister8Bit(ref HL.High);
                     break;
-                case 0xE6: AndWithRegisterA(ReadNextValue());
+                case 0x7:
+                    DecimalAdjustRegisterA();
                     break;
-                case 0xE7: Restart(0x20);
+                case 0x8:
+                    ConditionallyJump(IsFlagSet(FlagZ), (sbyte)ReadNextValue());
                     break;
-                case 0xE8: AddValueToStackPointer();
+                case 0x9:
+                    AddValueToRegisterHL(HL);
                     break;
-                case 0xE9: IncrementCycles(-4); Jump(HL.Value);
+                case 0xA:
+                    LoadMemoryToRegister8Bit(ref AF.High, HL.Value); HL.Value++;
                     break;
-                case 0xEA: LoadValueToMemory8Bit(ReadNextTwoValues(), AF.High);
+                case 0xB:
+                    DecrementRegister16Bit(HL);
                     break;
-                case 0xEE: XorWithRegisterA(ReadNextValue());
+                case 0xC:
+                    IncrementRegister8Bit(ref HL.Low);
                     break;
-                case 0xEF: Restart(0x28);
+                case 0xD:
+                    DecrementRegister8Bit(ref HL.Low);
                     break;
-                case 0xF0: LoadMemoryToRegister8Bit(ref AF.High, (ushort)(0xFF00 + ReadNextValue()));
+                case 0xE:
+                    LoadValueToRegister8Bit(ref HL.Low);
                     break;
-                case 0xF1: PopValuesIntoRegister(AF); AF.Low &= 0xF0;   // Bottom 4 bits of flags are never used; clear them
+                case 0xF:
+                    ComplementRegisterA();
                     break;
-                case 0xF2: LoadMemoryToRegister8Bit(ref AF.High, (ushort)(0xFF00 + BC.Low));
+            }
+        }
+
+        private void ExecuteHighByte1OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0:
+                    Stopped = true; ProgramCounter++;
                     break;
-                case 0xF3: DisableInterrupts();
+                case 0x1:
+                    LoadValueToRegister16Bit(DE);
                     break;
-                case 0xF5: PushAddressOntoStack(AF.Value);
+                case 0x2:
+                    LoadValueToMemory8Bit(DE.Value, AF.High);
                     break;
-                case 0xF6: OrWithRegisterA(ReadNextValue());
+                case 0x3:
+                    IncrementRegister16Bit(DE);
                     break;
-                case 0xF7: Restart(0x30);
+                case 0x4:
+                    IncrementRegister8Bit(ref DE.High);
                     break;
-                case 0xF8: LoadStackPointerToRegisterHL();
+                case 0x5:
+                    DecrementRegister8Bit(ref DE.High);
                     break;
-                case 0xF9: IncrementCycles(4); LoadRegisterToRegister16Bit(StackPointer, HL);
+                case 0x6:
+                    LoadValueToRegister8Bit(ref DE.High);
                     break;
-                case 0xFA: LoadMemoryToRegister8Bit(ref AF.High, ReadNextTwoValues());
+                case 0x7:
+                    RotateALeftThroughCarry();
                     break;
-                case 0xFB: EnableInterrupts();
+                case 0x8:
+                    Jump((sbyte)ReadNextValue());
                     break;
-                case 0xFE: CompareWithRegisterA(ReadNextValue());
+                case 0x9:
+                    AddValueToRegisterHL(DE);
                     break;
-                case 0xFF: Restart(0x38);
-                    break;                
+                case 0xA:
+                    LoadMemoryToRegister8Bit(ref AF.High, DE.Value);
+                    break;
+                case 0xB:
+                    DecrementRegister16Bit(DE);
+                    break;
+                case 0xC:
+                    IncrementRegister8Bit(ref DE.Low);
+                    break;
+                case 0xD:
+                    DecrementRegister8Bit(ref DE.Low);
+                    break;
+                case 0xE:
+                    LoadValueToRegister8Bit(ref DE.Low);
+                    break;
+                case 0xF:
+                    RotateARightThroughCarry();
+                    break;
+            }
+        }
+        private void ExecuteHighByte0OpCode(int lowByte)
+        {
+            switch (lowByte)
+            {
+                case 0x0: // Do nothing
+                    break;
+                case 0x1:
+                    LoadValueToRegister16Bit(BC);
+                    break;
+                case 0x2:
+                    LoadValueToMemory8Bit(BC.Value, AF.High);
+                    break;
+                case 0x3:
+                    IncrementRegister16Bit(BC);
+                    break;
+                case 0x4:
+                    IncrementRegister8Bit(ref BC.High);
+                    break;
+                case 0x5:
+                    DecrementRegister8Bit(ref BC.High);
+                    break;
+                case 0x6:
+                    LoadValueToRegister8Bit(ref BC.High);
+                    break;
+                case 0x7:
+                    RotateALeftNoCarry();
+                    break;
+                case 0x8:
+                    LoadRegisterToMemory(StackPointer);
+                    break;
+                case 0x9:
+                    AddValueToRegisterHL(BC);
+                    break;
+                case 0xA:
+                    LoadMemoryToRegister8Bit(ref AF.High, BC.Value);
+                    break;
+                case 0xB:
+                    DecrementRegister16Bit(BC);
+                    break;
+                case 0xC:
+                    IncrementRegister8Bit(ref BC.Low);
+                    break;
+                case 0xD:
+                    DecrementRegister8Bit(ref BC.Low);
+                    break;
+                case 0xE:
+                    LoadValueToRegister8Bit(ref BC.Low);
+                    break;
+                case 0xF:
+                    RotateARightNoCarry();
+                    break;
             }
         }
 
